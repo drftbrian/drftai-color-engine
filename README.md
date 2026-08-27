@@ -88,8 +88,8 @@ grade: 100   95   90   80   70   60   50   40   30   20   10    5    0
 |---|---|
 | **A. Common Palette** | neutral 13스텝. Surface Mode가 `PRIMARY TINT`면 틴트 슬라이더가 그대로 적용됩니다 |
 | **B. Opacity** | `0 4 8 12 16 24 32 40 48 56 64 72` (%) |
-| **C. Muted Palette** | 11 hue × 11 step. 채도는 CHROMA 슬라이더로 조절 (현재 바인딩된 토큰 없음 — 확장용) |
-| **D. Saturated Palette** | 같은 hue 앵커, 채도 100%. status 토큰의 원본 |
+| **C. Muted Palette** | 11 hue × 11 step. 채도는 CHROMA 슬라이더로 조절 |
+| **D. Saturated Palette** | 같은 hue 앵커, 채도 100% |
 | **E. Primary Palette** | 입력한 브랜드 색의 램프. 레퍼런스에 없는 우리 시스템만의 레이어 |
 
 hue는 step 500을 앵커로 정의하고(`brown red orange yellow citron sprout green teal blue purple pink`),
@@ -108,6 +108,11 @@ grade 40에 앉으므로 스와치는 동일하고 라벨만 다릅니다.
 - **Frost** — light는 `neutral/0`, dark는 `neutral/1000` × (light 48 · default 64 · strong 72)
 - Elevation은 제외
 
+### Status는 어느 팔레트에서 뽑을지 고를 수 있습니다
+
+왼쪽 패널의 **STATUS PALETTE** 토글로 `SATURATED`(기본) / `MUTED`를 고릅니다. 고른 쪽이
+status 토큰의 원본이 되고, 팔레트 셀의 바인딩 표시와 토큰 참조(`← muted/red/500`)도 함께 옮겨갑니다.
+
 ### Status foreground / border는 step이 고정이 아닙니다
 
 같은 step이라도 hue마다 대비가 크게 다릅니다. yellow/600은 자기 tint 위에서 2.58:1로
@@ -120,6 +125,9 @@ step을 자동으로 고릅니다** (foreground 4.5:1, border 3:1).
 | border | 500 | 700 | 600 | 500 |
 
 dark는 네 hue 모두 400에서 통과합니다 (최소 4.82:1).
+
+MUTED로 바꾸면 자동 선택 결과도 따라 바뀝니다 — 예를 들어 warning은 muted 쪽이 이미 덜 밝아서
+800이 아니라 **700**(6.07:1)에서 통과합니다. 어느 팔레트를 골라도 네 상태 모두 AA를 넘습니다.
 
 ### 양방향 링크
 
