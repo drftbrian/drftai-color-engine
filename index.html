@@ -1,0 +1,1409 @@
+<meta charset="utf-8">
+<title>Chroma Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#fbf8fd; --bg-bright:#ffffff; --bg-dim:#dbd9dd;
+    --s-lowest:#ffffff; --s-low:#f5f3f7; --s:#efedf1; --s-high:#e9e7ec; --s-highest:#e4e2e6;
+    --on-surface:#1b1b1f; --on-surface-variant:#44464f;
+    --outline:#aaabb3; --outline-variant:#e1e2eb;
+    --text:#141414; --text2:#404040; --scrim:#12121266;
+    --primary:#276ef1; --primary2:#184495; --on-primary:#ffffff;
+    --primary-variant:#d4e2fc; --on-primary-variant:#0a1c3c;
+    --error:#ea4335; --warning:#f7c137; --success:#3ddc84;
+    --sans:'Archivo',system-ui,-apple-system,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+    --rail:336px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:var(--sans); font-size:15px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    transition:background .25s ease,color .25s ease;
+  }
+  button,input,select{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+  .shell{display:grid;grid-template-columns:var(--rail) minmax(0,1fr);min-height:100vh}
+
+  /* ---------- control rail ---------- */
+  .rail{
+    position:sticky;top:0;height:100vh;overflow-y:auto;
+    background:var(--s-low);border-right:1px solid var(--outline-variant);
+    padding:26px 22px 40px;display:flex;flex-direction:column;gap:26px;
+  }
+  .brand{display:flex;flex-direction:column;gap:4px}
+  .brand h1{font-size:19px;font-weight:700;letter-spacing:-.02em;margin:0}
+  .brand p{margin:0;font-family:var(--mono);font-size:11px;color:var(--text2);letter-spacing:.04em}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--primary);display:inline-block;margin-right:7px;vertical-align:1px}
+
+  .field{display:flex;flex-direction:column;gap:9px}
+  .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text2)}
+
+  .hexrow{display:flex;gap:8px;align-items:stretch}
+  .swatch-input{position:relative;width:46px;height:46px;flex:none;border-radius:3px;overflow:hidden;border:1px solid var(--outline)}
+  .swatch-input input{position:absolute;inset:-8px;width:calc(100% + 16px);height:calc(100% + 16px);border:0;padding:0;background:none;cursor:pointer}
+  .hexfield{flex:1;display:flex;align-items:center;background:var(--s-lowest);border:1px solid var(--outline-variant);border-radius:3px;padding:0 10px}
+  .hexfield input{width:100%;border:0;background:none;font-family:var(--mono);font-size:14px;letter-spacing:.06em;text-transform:uppercase;padding:12px 0}
+  .hexfield input:focus{outline:none}
+  .hexfield.bad{border-color:var(--error)}
+
+  .seg{display:flex;background:var(--s-lowest);border:1px solid var(--outline-variant);border-radius:3px;padding:3px;gap:3px}
+  .seg button{flex:1;border:0;background:none;padding:8px 6px;border-radius:2px;cursor:pointer;
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--text2);transition:.15s}
+  .seg button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary)}
+  .seg button:hover:not([aria-pressed="true"]){color:var(--text)}
+
+  .ghost{border:1px solid var(--outline);background:none;border-radius:3px;padding:10px;cursor:pointer;
+    font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);transition:.15s;width:100%}
+  .ghost:hover{border-color:var(--primary);color:var(--primary)}
+
+  .presets{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+  .presets button{aspect-ratio:1;border-radius:2px;border:1px solid var(--outline-variant);cursor:pointer;padding:0;transition:transform .12s}
+  .presets button:hover{transform:scale(1.14)}
+
+  .status-grid{display:flex;flex-direction:column;gap:10px}
+  .status-row{display:flex;align-items:center;gap:9px}
+  .status-row .swatch-input{width:32px;height:32px}
+  .status-row span{font-family:var(--mono);font-size:11px;color:var(--text2);letter-spacing:.06em;flex:1}
+  .status-row code{font-family:var(--mono);font-size:11px;color:var(--text)}
+
+  .note{font-size:12px;line-height:1.6;color:var(--text2);border-top:1px solid var(--outline-variant);padding-top:16px;margin-top:auto}
+  .note b{color:var(--text);font-weight:600}
+
+  /* ---------- canvas ---------- */
+  .canvas{padding:34px 40px 90px;display:flex;flex-direction:column;gap:40px;min-width:0}
+
+  .step{display:flex;flex-direction:column;gap:16px}
+  .step-head{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--outline-variant);padding-bottom:10px}
+  .grade{font-family:var(--mono);font-size:11px;color:var(--primary);letter-spacing:.1em}
+  .step-head h2{margin:0;font-size:16px;font-weight:600;letter-spacing:-.01em}
+  .step-head p{margin:0 0 0 auto;font-family:var(--mono);font-size:11px;color:var(--text2);text-align:right}
+
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:10px}
+  .sw{border:1px solid var(--outline-variant);border-radius:4px;overflow:hidden;background:var(--s-lowest);
+    cursor:pointer;text-align:left;padding:0;transition:border-color .15s,transform .12s}
+  .sw:hover{border-color:var(--primary);transform:translateY(-2px)}
+  .sw .chip{height:66px;display:flex;align-items:flex-end;justify-content:flex-end;padding:6px 8px}
+  .sw .chip em{font-family:var(--mono);font-size:10px;font-style:normal;opacity:.9}
+  .sw .meta{padding:9px 10px 11px;display:flex;flex-direction:column;gap:2px}
+  .sw .meta strong{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.02em;color:var(--text)}
+  .sw .meta code{font-family:var(--mono);font-size:11px;color:var(--text2);text-transform:uppercase;font-variant-numeric:tabular-nums}
+
+  .ratio{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+    border:1px solid currentColor;border-radius:2px;padding:1px 5px;letter-spacing:.04em}
+  .ratio.pass{color:#1a7f4b}.ratio.mid{color:#9a6b00}.ratio.fail{color:#b3261e}
+
+  .pairs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+  .pair{border:1px solid var(--outline-variant);border-radius:4px;padding:14px;display:flex;flex-direction:column;gap:8px}
+  .pair .sample{font-size:15px;font-weight:600}
+  .pair .cap{font-family:var(--mono);font-size:10px;letter-spacing:.06em;opacity:.75}
+
+  /* preview */
+  .preview{border:1px solid var(--outline-variant);border-radius:6px;background:var(--bg);overflow:hidden}
+  .preview-bar{display:flex;align-items:center;gap:8px;padding:11px 16px;background:var(--s);border-bottom:1px solid var(--outline-variant)}
+  .preview-bar b{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.08em;color:var(--text2)}
+  .preview-body{padding:22px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+  .card{background:var(--s-lowest);border:1px solid var(--outline-variant);border-radius:5px;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .card h3{margin:0;font-size:15px;font-weight:600}
+  .card p{margin:0;font-size:13px;color:var(--text2);line-height:1.6}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  .b{border-radius:3px;padding:9px 15px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:.15s}
+  .b.fill{background:var(--primary);color:var(--on-primary)}
+  .b.fill:hover{background:var(--primary2)}
+  .b.soft{background:var(--primary-variant);color:var(--on-primary-variant)}
+  .b.line{border-color:var(--outline);background:none;color:var(--text)}
+  .b.line:hover{border-color:var(--primary);color:var(--primary)}
+  .inp{background:var(--s-low);border:1px solid var(--outline);border-radius:3px;padding:10px 12px;font-size:13px;width:100%}
+  .alerts{display:flex;flex-direction:column;gap:8px}
+  .alert{display:flex;align-items:center;gap:10px;border-radius:3px;padding:10px 13px;font-size:13px}
+  .alert i{width:7px;height:7px;border-radius:50%;flex:none;font-style:normal}
+  .elevation{display:flex;gap:0;border-radius:5px;overflow:hidden;border:1px solid var(--outline-variant)}
+  .elevation div{flex:1;height:56px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;
+    font-family:var(--mono);font-size:9px;color:var(--text2);letter-spacing:.04em}
+
+  /* export */
+  .export{display:flex;flex-direction:column;gap:12px}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap}
+  .tabs button{border:1px solid var(--outline-variant);background:var(--s-low);border-radius:3px;padding:7px 13px;cursor:pointer;
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--text2);transition:.15s}
+  .tabs button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+  .code{position:relative;background:var(--s-lowest);border:1px solid var(--outline-variant);border-radius:5px}
+  .code pre{margin:0;padding:18px;max-height:400px;overflow:auto;font-family:var(--mono);font-size:12px;line-height:1.75;color:var(--text)}
+  .code .copy{position:absolute;top:10px;right:10px}
+  .code .copy button{border:1px solid var(--outline);background:var(--s-low);border-radius:3px;padding:6px 12px;cursor:pointer;
+    font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2)}
+  .code .copy button:hover{border-color:var(--primary);color:var(--primary)}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,16px);opacity:0;pointer-events:none;
+    background:var(--text);color:var(--bg);border-radius:3px;padding:10px 18px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;transition:.22s ease;z-index:50}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  /* ---------- layer 0 · source ramps ---------- */
+  .src{display:flex;flex-direction:column;gap:26px}
+  .ramp-block{display:flex;flex-direction:column;gap:7px}
+  .ramp-title{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .ramp-title b{font-size:13px;font-weight:600}
+  .ramp-title span{font-family:var(--mono);font-size:10px;color:var(--text2);letter-spacing:.05em}
+  .ramp-scroll{overflow-x:auto;padding-bottom:2px}
+  .ramp-inner{min-width:820px;display:flex;flex-direction:column;gap:5px}
+  .ramp-strip,.ramp-hexes{display:grid;grid-template-columns:repeat(13,1fr);gap:0}
+  .ramp-strip{border-radius:3px;overflow:hidden;border:1px solid var(--outline-variant)}
+  .stop{border:0;padding:9px 4px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;
+    min-height:74px;position:relative;transition:transform .12s;font-family:var(--mono)}
+  .stop:hover{transform:translateY(-2px);z-index:2}
+  .stop .g{font-size:12px;font-weight:500;font-variant-numeric:tabular-nums}
+  .stop .tok{font-size:8.5px;line-height:1.35;text-align:center;opacity:.82;letter-spacing:.01em}
+  .stop .a{font-size:8.5px;opacity:.6}
+  .stop.bound{box-shadow:inset 0 0 0 2px currentColor}
+  .ramp-hexes code{font-family:var(--mono);font-size:9px;color:var(--text2);text-align:center;
+    letter-spacing:.02em;font-variant-numeric:tabular-nums}
+  .ramp-ticks{position:relative;height:26px;margin-top:1px}
+  .ramp-ticks i{position:absolute;top:0;width:1px;height:8px;background:var(--outline);transform:translateX(-50%)}
+  .ramp-ticks b{position:absolute;top:10px;transform:translateX(-50%);white-space:nowrap;
+    font-family:var(--mono);font-size:9px;font-weight:400;color:var(--text2)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;color:var(--text2);letter-spacing:.04em}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:13px;height:13px;border-radius:2px;box-shadow:inset 0 0 0 2px var(--text);display:inline-block}
+  .legend u{width:13px;height:1px;background:var(--outline);text-decoration:none}
+  .slider-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .slider-head b{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);
+    font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;background:none;margin:0;height:20px;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:var(--outline-variant)}
+  input[type=range]::-moz-range-track{height:3px;border-radius:2px;background:var(--outline-variant)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;
+    border-radius:50%;background:var(--primary);border:2px solid var(--s-lowest);margin-top:-6px;
+    box-shadow:0 0 0 1px var(--outline)}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--primary);
+    border:2px solid var(--s-lowest);box-shadow:0 0 0 1px var(--outline)}
+  .slider-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;
+    color:var(--text2);letter-spacing:.04em;margin-top:-4px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  .chips button{border:1px solid var(--outline-variant);background:var(--s-lowest);border-radius:3px;
+    padding:6px 9px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--text2);
+    cursor:pointer;transition:.15s}
+  .chips button:hover:not([aria-pressed="true"]){border-color:var(--primary);color:var(--primary)}
+  .chips button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+  .chip-desc{margin:0;font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--text2)}
+
+  .curve-panel{display:grid;grid-template-columns:minmax(200px,300px) minmax(0,1fr);gap:24px;align-items:start;
+    border:1px solid var(--outline-variant);border-radius:6px;padding:18px;background:var(--s-low)}
+  #curve{width:100%;aspect-ratio:1;display:block;border-radius:4px;background:var(--s-lowest);
+    touch-action:none;cursor:crosshair}
+  .curve-side{display:flex;flex-direction:column;gap:13px}
+  .curve-formula{margin:0;font-family:var(--mono);font-size:11px;color:var(--text);letter-spacing:.03em}
+  .curve-formula b{color:var(--primary);font-weight:500}
+  .curve-read{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px}
+  .curve-read div{border:1px solid var(--outline-variant);border-radius:3px;padding:6px 7px;
+    display:flex;flex-direction:column;gap:5px;font-family:var(--mono);font-size:9.5px;color:var(--text2)}
+  .curve-read i{height:15px;border-radius:2px;border:1px solid var(--outline-variant)}
+  .curve-read b{color:var(--text);font-weight:500;font-variant-numeric:tabular-nums}
+  .curve-help{margin:0;font-size:11px;line-height:1.65;color:var(--text2)}
+  .curve-actions{display:flex;gap:6px}
+  .curve-actions .ghost{padding:8px 10px}
+  @media (max-width:820px){ .curve-panel{grid-template-columns:1fr} }
+
+  .offgrid{display:flex;flex-wrap:wrap;gap:6px}
+  .offgrid span{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--outline-variant);
+    border-radius:2px;padding:3px 8px;font-family:var(--mono);font-size:9.5px;color:var(--text2);letter-spacing:.03em}
+  .offgrid i{width:10px;height:10px;border-radius:2px;border:1px solid var(--outline-variant)}
+  .sw .meta .origin{opacity:.7;text-transform:none;letter-spacing:.03em}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  @media (max-width:900px){
+    .shell{grid-template-columns:1fr}
+    .rail{position:static;height:auto;border-right:0;border-bottom:1px solid var(--outline-variant)}
+    .canvas{padding:26px 18px 70px}
+  }
+</style>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="brand">
+      <h1><span class="dot"></span>Chroma Bench</h1>
+      <p>DRFT COLOR ENGINE · STANDALONE</p>
+    </div>
+
+    <div class="field">
+      <span class="lbl">Primary — 기준색 (40%)</span>
+      <div class="hexrow">
+        <label class="swatch-input" style="background:var(--primary)"><input type="color" id="pick" value="#276EF1" aria-label="Primary color"></label>
+        <label class="hexfield" id="hexwrap"><input id="hex" value="#276EF1" spellcheck="false" aria-label="Primary hex"></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="lbl">Presets</span>
+      <div class="presets" id="presets"></div>
+      <button class="ghost" id="rand">Randomize</button>
+    </div>
+
+    <div class="field">
+      <span class="lbl">Surface Mode</span>
+      <div class="seg" id="mode">
+        <button data-v="default" aria-pressed="true">DEFAULT</button>
+        <button data-v="primary" aria-pressed="false">PRIMARY TINT</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="lbl">Primary Tint</span>
+      <div class="slider-head">
+        <span class="chip-desc">grade 50 강도</span>
+        <b id="tint-val">10.0%</b>
+      </div>
+      <input type="range" id="tint" min="0" max="60" step="0.5" value="10"
+        aria-label="Primary tint strength at grade 50 (percent)">
+      <div class="slider-scale"><span>0%</span><span>30%</span><span>60%</span></div>
+      <div class="seg" id="tint-shape">
+        <button data-v="sheet" aria-pressed="true">SHEET</button>
+        <button data-v="tent" aria-pressed="false">TENT</button>
+      </div>
+      <p class="chip-desc" id="tint-desc"></p>
+    </div>
+
+    <div class="field">
+      <span class="lbl">Theme</span>
+      <div class="seg" id="theme">
+        <button data-v="light" aria-pressed="true">LIGHT</button>
+        <button data-v="dark" aria-pressed="false">DARK</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="lbl">Gradation Curve</span>
+      <div class="chips" id="curve-pick"></div>
+      <p class="chip-desc" id="curve-desc"></p>
+    </div>
+
+    <div class="field">
+      <span class="lbl">Status Colors</span>
+      <div class="status-grid">
+        <div class="status-row">
+          <label class="swatch-input" id="sw-error"><input type="color" id="c-error" value="#EA4335" aria-label="Error color"></label>
+          <span>error</span><code id="t-error">#EA4335</code>
+        </div>
+        <div class="status-row">
+          <label class="swatch-input" id="sw-warning"><input type="color" id="c-warning" value="#F7C137" aria-label="Warning color"></label>
+          <span>warning</span><code id="t-warning">#F7C137</code>
+        </div>
+        <div class="status-row">
+          <label class="swatch-input" id="sw-success"><input type="color" id="c-success" value="#3DDC84" aria-label="Success color"></label>
+          <span>success</span><code id="t-success">#3DDC84</code>
+        </div>
+      </div>
+    </div>
+
+    <p class="note">모든 semantic 토큰은 맨 아래 <b>Color Source</b> 13스톱에서 파생됩니다.
+      스와치를 클릭하면 HEX가 복사되고, 링크에는 현재 팔레트가 <b>#해시</b>로 저장돼 그대로 공유됩니다.</p>
+  </aside>
+
+  <main class="canvas">
+    <section class="step">
+      <div class="step-head">
+        <span class="grade">10 · 25 · 40 · 90 · 100</span>
+        <h2>Primary ramp</h2>
+        <p id="ramp-note">기준색을 40% 지점으로 두고 흑/백 방향으로 보간</p>
+      </div>
+      <div class="swatches" id="ramp"></div>
+      <div class="pairs" id="ramp-pairs"></div>
+    </section>
+
+    <section class="step">
+      <div class="step-head">
+        <span class="grade">SURFACE</span>
+        <h2>Surface system</h2>
+        <p id="surface-note"></p>
+      </div>
+      <div class="elevation" id="elev"></div>
+      <div class="swatches" id="surface"></div>
+    </section>
+
+    <section class="step">
+      <div class="step-head">
+        <span class="grade">STATUS</span>
+        <h2>Status system</h2>
+        <p>error · warning · success × container 4단계</p>
+      </div>
+      <div class="swatches" id="status"></div>
+    </section>
+
+    <section class="step">
+      <div class="step-head">
+        <span class="grade">PREVIEW</span>
+        <h2>Applied</h2>
+        <p>생성된 토큰만으로 구성된 UI</p>
+      </div>
+      <div class="preview">
+        <div class="preview-bar"><b id="pv-label">DEFAULT / LIGHT</b></div>
+        <div class="preview-body">
+          <div class="card">
+            <h3>Weekly digest</h3>
+            <p>토큰이 바뀌면 이 카드도 함께 바뀝니다. 배경은 surfaceLowest, 테두리는 outlineVariant를 씁니다.</p>
+            <div class="btns">
+              <button class="b fill">Publish</button>
+              <button class="b soft">Duplicate</button>
+              <button class="b line">Discard</button>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Form</h3>
+            <input class="inp" placeholder="project name" aria-label="project name">
+            <input class="inp" placeholder="team@studio.com" aria-label="email">
+            <button class="b fill" style="align-self:flex-start">Create project</button>
+          </div>
+          <div class="card">
+            <h3>Signals</h3>
+            <div class="alerts" id="alerts"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="step export">
+      <div class="step-head">
+        <span class="grade">EXPORT</span>
+        <h2>Hand-off</h2>
+        <p>현재 테마 기준으로 출력</p>
+      </div>
+      <div class="tabs" id="tabs">
+        <button data-v="css" aria-pressed="true">CSS VARIABLES</button>
+        <button data-v="tw" aria-pressed="false">TAILWIND</button>
+        <button data-v="json" aria-pressed="false">JSON</button>
+        <button data-v="figma" aria-pressed="false">FIGMA TOKENS</button>
+        <button data-v="swift" aria-pressed="false">SWIFTUI</button>
+      </div>
+      <div class="code">
+        <div class="copy"><button id="copy-code">Copy</button></div>
+        <pre id="out"></pre>
+      </div>
+    </section>
+    <section class="step">
+      <div class="step-head">
+        <span class="grade">LAYER 0</span>
+        <h2>Color source</h2>
+        <p>13 stops · 100 → 0 · 위 semantic 토큰의 원본</p>
+      </div>
+      <div class="legend">
+        <span><i></i>semantic 토큰이 바인딩된 스톱</span>
+        <span><u></u>그리드 밖 grade (보간)</span>
+        <span>스톱 클릭 → HEX 복사</span>
+      </div>
+      <div class="curve-panel">
+        <canvas id="curve" tabindex="0" role="application"
+          aria-label="그라데이션 커브 편집기. 방향키로 선택한 포인트를 이동하고 Delete로 삭제합니다."></canvas>
+        <div class="curve-side">
+          <div class="tabs" id="chan">
+            <button data-v="neutral" aria-pressed="true">NEUTRAL — gray ramp</button>
+            <button data-v="color" aria-pressed="false">COLOR — hue ramps</button>
+          </div>
+          <p class="curve-formula" id="curve-formula"></p>
+          <div class="curve-read" id="curve-read"></div>
+          <div class="curve-actions">
+            <button class="ghost" id="curve-reset">RESET TO SOURCE</button>
+            <button class="ghost" id="curve-linear">LINEAR</button>
+          </div>
+          <p class="curve-help">그래프 위에서 <b>드래그</b>하면 포인트가 움직이고, 프리셋 상태에서 드래그하면
+            그 커브를 그대로 이어받아 CUSTOM으로 전환됩니다. 빈 곳 클릭 = 포인트 추가, 더블클릭 = 삭제,
+            방향키 = 미세조정(Shift ×5). 양 끝점은 x가 고정입니다.</p>
+        </div>
+      </div>
+      <div class="src" id="src"></div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   COLOR ENGINE — ported from drft_1
+   components/DesignSystemLogic/Colors/colorSystem.ts
+   ============================================================ */
+const hexToRGB = h => ({ r:parseInt(h.slice(1,3),16), g:parseInt(h.slice(3,5),16), b:parseInt(h.slice(5,7),16) });
+const rgbToHex = ({r,g,b}) => '#' + [r,g,b].map(v => Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('');
+const lerp = (s,e,t) => s + (e-s)*Math.max(0,Math.min(1,t));
+
+function rgbToHsl({r,g,b}){
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h=0, s=0; const l=(max+min)/2;
+  if(max!==min){
+    const d=max-min;
+    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    if(max===r) h=(g-b)/d + (g<b?6:0);
+    else if(max===g) h=(b-r)/d + 2;
+    else h=(r-g)/d + 4;
+    h/=6;
+  }
+  return { h:h*360, s:s*100, l:l*100 };
+}
+function hslToRgb(h,s,l){
+  const H=h/360, S=s/100, L=l/100;
+  let r,g,b;
+  if(S===0){ r=g=b=L; }
+  else{
+    const hue2rgb=(p,q,t)=>{ if(t<0)t+=1; if(t>1)t-=1;
+      if(t<1/6) return p+(q-p)*6*t;
+      if(t<1/2) return q;
+      if(t<2/3) return p+(q-p)*(2/3-t)*6;
+      return p; };
+    const q = L<0.5 ? L*(1+S) : L+S-L*S;
+    const p = 2*L-q;
+    r=hue2rgb(p,q,H+1/3); g=hue2rgb(p,q,H); b=hue2rgb(p,q,H-1/3);
+  }
+  return { r:Math.round(r*255), g:Math.round(g*255), b:Math.round(b*255) };
+}
+/* base + primary(채도 50%)를 alpha% 만큼 혼합 */
+function blendWithAlpha(baseHex, primaryHex, alpha){
+  const base = hexToRGB(baseHex);
+  const hsl = rgbToHsl(hexToRGB(primaryHex));
+  const de = hslToRgb(hsl.h, hsl.s*0.5, hsl.l);
+  return rgbToHex({
+    r: Math.round(lerp(base.r, de.r, alpha/100)),
+    g: Math.round(lerp(base.g, de.g, alpha/100)),
+    b: Math.round(lerp(base.b, de.b, alpha/100)),
+  });
+}
+
+/* ---------- LAYER 0 · COLOR SOURCE ----------------------------------------
+   The 13 stops every semantic token is drawn from. `basis` picks which
+   arithmetic produces them:
+     source — reproduces the "Color Source (Do Not Edit)" sheet exactly:
+              gray = round(2.575g - 2.75), channels truncated
+     repo   — reproduces drft_1's shipped code:
+              gray = round(g/100*255), channels rounded
+   -------------------------------------------------------------------------- */
+const GRADES = [100, 98, 95, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0];
+
+/* How much primary gets mixed into a grey, as a function of the GRADE NUMBER —
+   not the stop's position in the list, since the stops are unevenly spaced
+   (100·98·95·90 sit 2, 3, 5 apart; everything below is 10 apart).
+   Shapes are normalised 0-1 and scaled by the strength slider, so the peak
+   value is always the strength itself, at grade 50.
+     sheet — the source table: linear tent, but held at 0.2x from 90 to 99
+     tent  — pure linear on both sides, 0 at each end                         */
+const TINT_SHAPES = {
+  sheet:{ label:'SHEET', hint:'90–99 구간을 정점의 0.2배로 유지 · 시트 원본',
+          pts:[[0,0], [50,1], [90,0.2], [99,0.2], [100,0]] },
+  tent:{  label:'TENT',  hint:'50에서 정점, 양쪽 완전 선형',
+          pts:[[0,0], [50,1], [100,0]] },
+};
+/* the source sheet's own numbers, kept for the readout */
+const TINT_CURVE = {100:0, 98:2, 95:2, 90:2, 80:4, 70:6, 60:8, 50:10, 40:8, 30:6, 20:4, 10:2, 0:0};
+
+function tintShapeAt(grade){
+  const pts = (TINT_SHAPES[state.tint.shape] || TINT_SHAPES.sheet).pts;
+  const g = Math.max(0, Math.min(100, grade));
+  for(let i = 0; i < pts.length - 1; i++){
+    const [x0, y0] = pts[i], [x1, y1] = pts[i+1];
+    if(g >= x0 && g <= x1) return x1 === x0 ? y1 : y0 + (y1 - y0) * (g - x0) / (x1 - x0);
+  }
+  return 0;
+}
+const tintAlphaAt = grade => state.tint.strength * tintShapeAt(grade);
+
+/* ---------- the gradation curve -------------------------------------------
+   One function per channel maps a grade (0-100) to an output level (0-1):
+     neutral — level of the gray ramp        → gray = round(255 x level)
+     color   — position of a hue's ramp      → how far the base travels to
+               white (above 40) or black (below 40)
+   The source sheet uses a different formula for each channel, which is why
+   they are kept separate — every other preset drives both with one curve.
+   -------------------------------------------------------------------------- */
+const clamp01 = v => Math.max(0, Math.min(1, v));
+const clamp255 = v => Math.max(0, Math.min(255, v));
+
+/* CIE L* → sRGB channel value. L* = grade means equal *perceived* steps. */
+function lstarToSrgb(L){
+  const Y = L > 8 ? Math.pow((L + 16) / 116, 3) : L / 903.3;
+  return Y <= 0.0031308 ? 12.92 * Y : 1.055 * Math.pow(Y, 1/2.4) - 0.055;
+}
+/* smoothstep blended with the identity — ends compress, mid-tones separate */
+function sCurve(t, k){
+  const ss = 3*t*t - 2*t*t*t;
+  return clamp01(t + (k === undefined ? 0.55 : k) * (ss - t));
+}
+
+/* monotone cubic (Fritsch–Carlson) — a spline that cannot overshoot, so a
+   dragged curve can never fold back on itself and break the ramp order */
+function splineAt(pts, x){
+  const n = pts && pts.length ? pts.length : 0;
+  if(n === 0) return clamp01(x/100);
+  if(n === 1) return pts[0].y;
+  if(x <= pts[0].x) return pts[0].y;
+  if(x >= pts[n-1].x) return pts[n-1].y;
+  const d = [], m = [];
+  for(let i = 0; i < n-1; i++) d[i] = (pts[i+1].y - pts[i].y) / (pts[i+1].x - pts[i].x);
+  m[0] = d[0]; m[n-1] = d[n-2];
+  for(let i = 1; i < n-1; i++) m[i] = d[i-1]*d[i] <= 0 ? 0 : (d[i-1] + d[i]) / 2;
+  for(let i = 0; i < n-1; i++){
+    if(d[i] === 0){ m[i] = 0; m[i+1] = 0; continue; }
+    const a = m[i]/d[i], b = m[i+1]/d[i], h = a*a + b*b;
+    if(h > 9){ const t = 3/Math.sqrt(h); m[i] = t*a*d[i]; m[i+1] = t*b*d[i]; }
+  }
+  let i = 0;
+  while(i < n-2 && x > pts[i+1].x) i++;
+  const h = pts[i+1].x - pts[i].x, t = (x - pts[i].x) / h, t2 = t*t, t3 = t2*t;
+  return clamp01(
+    (2*t3 - 3*t2 + 1) * pts[i].y + (t3 - 2*t2 + t) * h * m[i] +
+    (-2*t3 + 3*t2) * pts[i+1].y + (t3 - t2) * h * m[i+1]
+  );
+}
+
+/* the original integer arithmetic, kept exact for the two reference curves */
+const LINEAR_FACTOR = grade => Math.abs((grade - 40) / (grade > 40 ? 60 : -40));
+
+const CURVES = {
+  source:{ label:'SOURCE', desc:'시트 원본',
+    formula:'gray round(2.575g − 2.75) · color 선형',
+    neutral:g => clamp01((2.575*g - 2.75)/255), color:g => g/100,
+    factor:LINEAR_FACTOR },
+  repo:{ label:'REPO', desc:'drft_1 배포본',
+    formula:'gray round(g/100 × 255) · 채널 반올림',
+    neutral:g => g/100, color:g => g/100,
+    factor:LINEAR_FACTOR },
+  perceptual:{ label:'PERCEPTUAL', desc:'눈에 균등한 간격',
+    formula:'L* = g → sRGB',
+    neutral:g => clamp01(lstarToSrgb(g)), color:g => clamp01(lstarToSrgb(g)) },
+  soft:{ label:'SOFT', desc:'밝은 쪽 단계가 촘촘',
+    formula:'(g/100) ^ 0.72',
+    neutral:g => Math.pow(g/100, 0.72), color:g => Math.pow(g/100, 0.72) },
+  contrast:{ label:'CONTRAST', desc:'중간톤 대비 강화',
+    formula:'S-curve · k 0.55',
+    neutral:g => sCurve(g/100), color:g => sCurve(g/100) },
+  custom:{ label:'CUSTOM', desc:'직접 편집',
+    formula:'monotone cubic spline',
+    neutral:g => splineAt(state.custom.neutral, g), color:g => splineAt(state.custom.color, g) },
+};
+const CURVE_IDS = Object.keys(CURVES);
+
+const activeCurve = () => CURVES[state.curve] || CURVES.source;
+const neutralAt   = g => clamp01(activeCurve().neutral(g));
+const colorLevel  = g => clamp01(activeCurve().color(g));
+/* only the repo preset reproduces drft_1's rounding + per-token tint alphas */
+const isRepo = () => state.curve === 'repo';
+const quant = x => isRepo() ? Math.round(x) : Math.floor(x + 1e-6);
+
+/* grade → neutral. Every curve hits #FFFFFF at 100 and #000000 at 0. */
+function sourceGray(grade){
+  const v = clamp255(Math.round(255 * neutralAt(grade)));
+  return rgbToHex({ r:v, g:v, b:v });
+}
+const getGrayScale = sourceGray;
+
+/* grade → base color pushed toward white (above 40) or black (below 40).
+   The travel distance is read off the color curve, so grade 40 always
+   returns the user's input color untouched, whatever the curve. */
+function interpolatePrimary(grade, base){
+  const target = grade > 40 ? 255 : 0;
+  const pivot = colorLevel(40), level = colorLevel(grade);
+  const own = activeCurve().factor;
+  const factor = clamp01(own ? own(grade) : (grade > 40
+    ? (pivot < 1 ? (level - pivot) / (1 - pivot) : 1)
+    : (pivot > 0 ? (pivot - level) / pivot : 1)));
+  return {
+    r: quant(lerp(base.r, target, factor)),
+    g: quant(lerp(base.g, target, factor)),
+    b: quant(lerp(base.b, target, factor)),
+  };
+}
+const colorAt = (baseColor, grade) => rgbToHex(interpolatePrimary(grade, hexToRGB(baseColor)));
+
+/* the three source ramps, 13 stops each */
+const buildRamp = baseColor => Object.fromEntries(GRADES.map(g => [g, colorAt(baseColor, g)]));
+const buildSurfaceRamp = () => Object.fromEntries(GRADES.map(g => [g, sourceGray(g)]));
+const buildTintedRamp = primary => Object.fromEntries(
+  GRADES.map(g => [g, blendWithAlpha(sourceGray(g), primary, tintAlphaAt(g))]));
+
+/* ---------- LAYER 1 · SEMANTIC ------------------------------------------- */
+/* every semantic token is a grade lookup into a layer-0 ramp */
+const PRIMARY_GRADE = { onPrimaryVariant:10, primary2:25, primary:40, primaryVariant:90, onPrimary:100 };
+const STATUS_GRADE  = { base:40, on:100, container:90, onContainer:10 };
+const SURFACE_GRADE = {
+  light:{ background:99, backgroundBright:100, backgroundDim:87,
+          surfaceLowest:100, surfaceLow:98, surface:95, surfaceHigh:90, surfaceHighest:80,
+          onSurface:10, onSurfaceVariant:30, outline:50, outlineVariant:80, text:8, text2:25 },
+  dark:{  background:6, backgroundBright:24, backgroundDim:0,
+          surfaceLowest:8, surfaceLow:10, surface:12, surfaceHigh:17, surfaceHighest:22,
+          onSurface:90, onSurfaceVariant:80, outline:70, outlineVariant:50, text:95, text2:80 },
+};
+const SCRIM = { light:'#12121266', dark:'#121212cc' };
+
+/* drft_1 hard-codes these tint alphas per token instead of reading the curve.
+   Kept so the `repo` basis reproduces the shipped output byte for byte. */
+const REPO_TINT = {
+  light:{ background:2, backgroundBright:0, backgroundDim:4, surfaceLowest:0, surfaceLow:2, surface:2,
+          surfaceHigh:2, surfaceHighest:4, onSurface:2, onSurfaceVariant:6, outline:10, outlineVariant:4, text:2, text2:6 },
+  dark:{  background:2, backgroundBright:6, backgroundDim:0, surfaceLowest:8, surfaceLow:10, surface:12,
+          surfaceHigh:17, surfaceHighest:22, onSurface:2, onSurfaceVariant:4, outline:6, outlineVariant:10, text:2, text2:4 },
+};
+const tintAlphaFor = (theme, token) =>
+  isRepo() ? REPO_TINT[theme][token] * (state.tint.strength / 10)
+           : tintAlphaAt(SURFACE_GRADE[theme][token]);
+
+function generateColorSystem(baseColor){
+  return Object.fromEntries(
+    Object.entries(PRIMARY_GRADE).map(([token, g]) => [token, colorAt(baseColor, g)]));
+}
+
+function generateDefaultSurfaceSystem(){
+  const out = {};
+  for(const theme of ['light','dark']){
+    out[theme] = Object.fromEntries(
+      Object.entries(SURFACE_GRADE[theme]).map(([token, g]) => [token, sourceGray(g)]));
+    out[theme].scrim = SCRIM[theme];
+  }
+  return out;
+}
+
+function generatePrimarySurfaceSystem(baseColor){
+  const out = {};
+  for(const theme of ['light','dark']){
+    out[theme] = Object.fromEntries(
+      Object.entries(SURFACE_GRADE[theme]).map(([token, g]) =>
+        [token, blendWithAlpha(sourceGray(g), baseColor, tintAlphaFor(theme, token))]));
+    out[theme].scrim = SCRIM[theme];
+  }
+  return out;
+}
+
+function generateStatusColorSystem({error, warning, success}){
+  const build = (name, hex) => {
+    const cap = name[0].toUpperCase() + name.slice(1);
+    return {
+      [name]: colorAt(hex, STATUS_GRADE.base),
+      ['on'+cap]: colorAt(hex, STATUS_GRADE.on),
+      [name+'Container']: colorAt(hex, STATUS_GRADE.container),
+      ['on'+cap+'Container']: colorAt(hex, STATUS_GRADE.onContainer),
+    };
+  };
+  return { ...build('error',error), ...build('warning',warning), ...build('success',success) };
+}
+
+/* WCAG contrast — the bench's own addition, not part of the ported engine */
+const luminance = hex => {
+  const {r,g,b} = hexToRGB(hex);
+  const f = c => { c/=255; return c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); };
+  return 0.2126*f(r) + 0.7152*f(g) + 0.0722*f(b);
+};
+const contrast = (a,b) => {
+  const l1 = luminance(a), l2 = luminance(b);
+  return (Math.max(l1,l2)+0.05) / (Math.min(l1,l2)+0.05);
+};
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const PRESETS = ['#276EF1','#0B0B0C','#E23E57','#F2545B','#FF7A00','#F7C137',
+                 '#12B886','#0FA3B1','#5F4B8B','#8E44AD','#C2185B','#3D5AFE',
+                 '#00A86B','#7A5C3E','#2F3E46','#D4AF37'];
+
+const state = {
+  primary:'#276EF1',
+  mode:'default',
+  theme:'light',
+  status:{ error:'#EA4335', warning:'#F7C137', success:'#3DDC84' },
+  curve:'source',
+  tint:{ strength:10, shape:'sheet' },
+  custom:{ neutral:null, color:null },
+  chan:'neutral',
+  tab:'css',
+};
+
+/* control points for the custom curve, sampled off whichever preset was active */
+const SEED_X = [0, 10, 25, 40, 60, 80, 100];
+const seedPoints = fn => SEED_X.map(x => ({ x, y:clamp01(fn(x)) }));
+function seedCustom(fromId){
+  const c = CURVES[fromId] || CURVES.source;
+  state.custom = { neutral:seedPoints(c.neutral), color:seedPoints(c.color) };
+}
+
+function readHash(){
+  const h = decodeURIComponent(location.hash.slice(1));
+  if(!h) return;
+  const p = new URLSearchParams(h);
+  const norm = v => /^#[0-9a-f]{6}$/i.test(v||'') ? v.toUpperCase() : null;
+  state.primary = norm(p.get('p')) || state.primary;
+  state.status.error = norm(p.get('e')) || state.status.error;
+  state.status.warning = norm(p.get('w')) || state.status.warning;
+  state.status.success = norm(p.get('s')) || state.status.success;
+  const pick = (key, allowed) => { const v = p.get(key); return allowed.includes(v) ? v : null; };
+  state.mode  = pick('m', ['default','primary']) || state.mode;
+  state.theme = pick('t', ['light','dark'])      || state.theme;
+  state.curve = pick('k', CURVE_IDS) || pick('b', ['source','repo']) || state.curve;
+  const pts = raw => {
+    const out = String(raw || '').split(',').map(seg => {
+      const [x, y] = seg.split(':').map(Number);
+      return Number.isFinite(x) && Number.isFinite(y) ? { x:Math.max(0,Math.min(100,x/10)), y:clamp01(y/1000) } : null;
+    }).filter(Boolean).sort((a,b) => a.x - b.x);
+    return out.length >= 2 ? out : null;
+  };
+  const tsRaw = p.get('ts');
+  if(tsRaw !== null && tsRaw !== ''){
+    const ts = Number(tsRaw);
+    if(Number.isFinite(ts) && ts >= 0 && ts <= 600) state.tint.strength = ts / 10;
+  }
+  if(TINT_SHAPES[p.get('tp')]) state.tint.shape = p.get('tp');
+  const cn = pts(p.get('cn')), cc = pts(p.get('cc'));
+  if(cn && cc) state.custom = { neutral:cn, color:cc };
+}
+function writeHash(){
+  const p = new URLSearchParams({ p:state.primary, m:state.mode, t:state.theme, k:state.curve,
+    e:state.status.error, w:state.status.warning, s:state.status.success,
+    ts:Math.round(state.tint.strength * 10), tp:state.tint.shape });
+  if(state.curve === 'custom' && state.custom.neutral){
+    const enc = arr => arr.map(pt => Math.round(pt.x*10) + ':' + Math.round(pt.y*1000)).join(',');
+    p.set('cn', enc(state.custom.neutral));
+    p.set('cc', enc(state.custom.color));
+  }
+  history.replaceState(null,'', '#'+p.toString());
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const $ = id => document.getElementById(id);
+let current = {};
+
+const RAMP_META = [
+  ['onPrimaryVariant','10', '가장 어두운 단계'],
+  ['primary2','25','기준색보다 어두운 단계'],
+  ['primary','40','기준색'],
+  ['primaryVariant','90','밝은 컨테이너'],
+  ['onPrimary','100','가장 밝은 단계'],
+];
+const SURFACE_KEYS = ['background','backgroundBright','backgroundDim','surfaceLowest','surfaceLow','surface',
+  'surfaceHigh','surfaceHighest','onSurface','onSurfaceVariant','outline','outlineVariant','text','text2','scrim'];
+const STATUS_KEYS = ['error','onError','errorContainer','onErrorContainer',
+  'warning','onWarning','warningContainer','onWarningContainer',
+  'success','onSuccess','successContainer','onSuccessContainer'];
+
+function readableOn(hex){
+  const base = hex.length === 9 ? hex.slice(0,7) : hex;
+  return contrast(base,'#ffffff') >= contrast(base,'#000000') ? '#ffffff' : '#000000';
+}
+
+function swatchEl(name, value, note, origin){
+  const b = document.createElement('button');
+  b.className = 'sw';
+  b.type = 'button';
+  b.title = '클릭해서 복사 · ' + value;
+  b.innerHTML =
+    '<span class="chip" style="background:'+value+';color:'+readableOn(value)+'"><em>'+(note||'')+'</em></span>' +
+    '<span class="meta"><strong></strong><code></code>' +
+      (origin ? '<code class="origin"></code>' : '') + '</span>';
+  b.querySelector('strong').textContent = name;
+  b.querySelector('code').textContent = value;
+  if(origin) b.querySelector('.origin').textContent = '\u2190 ' + origin;
+  b.addEventListener('click', () => copy(value, value + ' 복사됨'));
+  return b;
+}
+
+function ratioBadge(fg, bg){
+  const r = contrast(fg,bg);
+  const cls = r >= 4.5 ? 'pass' : r >= 3 ? 'mid' : 'fail';
+  const tag = r >= 7 ? 'AAA' : r >= 4.5 ? 'AA' : r >= 3 ? 'AA·LG' : 'FAIL';
+  return '<span class="ratio '+cls+'">'+r.toFixed(2)+' · '+tag+'</span>';
+}
+
+function render(){
+  if(!CURVES[state.curve]) state.curve = 'source';
+  const cs = generateColorSystem(state.primary);
+  const surfaces = state.mode === 'default'
+    ? generateDefaultSurfaceSystem()
+    : generatePrimarySurfaceSystem(state.primary);
+  const sf = surfaces[state.theme];
+  const st = generateStatusColorSystem(state.status);
+  current = { cs, sf, st, surfaces };
+
+  /* the app skins itself with its own output */
+  const r = document.documentElement.style;
+  r.setProperty('--bg', sf.background);
+  r.setProperty('--bg-bright', sf.backgroundBright);
+  r.setProperty('--bg-dim', sf.backgroundDim);
+  r.setProperty('--s-lowest', sf.surfaceLowest);
+  r.setProperty('--s-low', sf.surfaceLow);
+  r.setProperty('--s', sf.surface);
+  r.setProperty('--s-high', sf.surfaceHigh);
+  r.setProperty('--s-highest', sf.surfaceHighest);
+  r.setProperty('--on-surface', sf.onSurface);
+  r.setProperty('--on-surface-variant', sf.onSurfaceVariant);
+  r.setProperty('--outline', sf.outline);
+  r.setProperty('--outline-variant', sf.outlineVariant);
+  r.setProperty('--text', sf.text);
+  r.setProperty('--text2', sf.text2);
+  r.setProperty('--primary', cs.primary);
+  r.setProperty('--primary2', cs.primary2);
+  r.setProperty('--on-primary', cs.onPrimary);
+  r.setProperty('--primary-variant', cs.primaryVariant);
+  r.setProperty('--on-primary-variant', cs.onPrimaryVariant);
+  r.setProperty('--error', st.error);
+  r.setProperty('--warning', st.warning);
+  r.setProperty('--success', st.success);
+  document.documentElement.style.colorScheme = state.theme;
+
+  /* inputs */
+  $('hex').value = state.primary.toUpperCase();
+  $('pick').value = state.primary;
+  for(const k of ['error','warning','success']){
+    $('c-'+k).value = state.status[k];
+    $('t-'+k).textContent = state.status[k].toUpperCase();
+  }
+  document.querySelectorAll('#mode button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v===state.mode)));
+  document.querySelectorAll('#theme button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v===state.theme)));
+  document.querySelectorAll('#curve-pick button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v===state.curve)));
+  document.querySelectorAll('#chan button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v===state.chan)));
+  $('curve-desc').textContent = activeCurve().desc + ' · ' + activeCurve().formula;
+  $('tint').value = state.tint.strength;
+  $('tint-val').textContent = state.tint.strength.toFixed(1) + '%';
+  $('tint-desc').textContent = (TINT_SHAPES[state.tint.shape] || TINT_SHAPES.sheet).hint;
+  document.querySelectorAll('#tint-shape button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.v === state.tint.shape)));
+  document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v===state.tab)));
+
+  /* ramp */
+  const ramp = $('ramp'); ramp.innerHTML='';
+  RAMP_META.forEach(([key, grade]) => ramp.appendChild(
+    swatchEl(key, cs[key], grade+'%', 'primary/'+grade)));
+
+  $('ramp-pairs').innerHTML = [
+    ['primary','onPrimary','Primary 위의 텍스트'],
+    ['primaryVariant','onPrimaryVariant','Container 위의 텍스트'],
+    ['background','onSurface','본문 텍스트'],
+  ].map(([bgK,fgK,label]) => {
+    const bg = cs[bgK] || sf[bgK];
+    const fg = cs[fgK] || sf[fgK];
+    return '<div class="pair" style="background:'+bg+';color:'+fg+'">' +
+      '<span class="sample">'+label+'</span>' +
+      '<span class="cap">'+bgK+' / '+fgK+'</span>' + ratioBadge(fg,bg) + '</div>';
+  }).join('');
+
+  /* surface */
+  $('surface-note').textContent = state.mode === 'default'
+    ? '순수 그레이스케일 (틴트 없음)'
+    : 'primary를 채도 50%로 낮춰 2–22% 혼합';
+  const elev = $('elev'); elev.innerHTML='';
+  ['surfaceLowest','surfaceLow','surface','surfaceHigh','surfaceHighest'].forEach(k => {
+    const d = document.createElement('div');
+    d.style.background = sf[k];
+    d.style.color = readableOn(sf[k]);
+    d.textContent = k.replace('surface','') || 'base';
+    elev.appendChild(d);
+  });
+  const surface = $('surface'); surface.innerHTML='';
+  SURFACE_KEYS.forEach(k => surface.appendChild(swatchEl(k, sf[k], '',
+    k === 'scrim' ? 'fixed' : (state.mode === 'primary' ? 'tinted/' : 'gray/') + SURFACE_GRADE[state.theme][k])));
+
+  /* status */
+  const status = $('status'); status.innerHTML='';
+  STATUS_KEYS.forEach(k => {
+    const fam = k.replace(/^on/,'').replace(/Container$/,'');
+    const family = fam[0].toLowerCase() + fam.slice(1);
+    const grade = /^on[A-Z]/.test(k) ? (/Container$/.test(k) ? 10 : 100) : (/Container$/.test(k) ? 90 : 40);
+    status.appendChild(swatchEl(k, st[k], '', family + '/' + grade));
+  });
+
+  /* preview */
+  $('pv-label').textContent = state.mode.toUpperCase() + ' / ' + state.theme.toUpperCase();
+  $('alerts').innerHTML = ['error','warning','success'].map(k => {
+    const cap = k[0].toUpperCase()+k.slice(1);
+    const msg = { error:'빌드 3건이 실패했습니다.', warning:'토큰 2개가 대비 기준 미달입니다.', success:'팔레트를 저장했습니다.' }[k];
+    return '<div class="alert" style="background:'+st[k+'Container']+';color:'+st['on'+cap+'Container']+'">' +
+      '<i style="background:'+st[k]+'"></i>'+msg+'</div>';
+  }).join('');
+
+  renderSource();
+  drawCurve();
+  renderCurveSide();
+  $('out').textContent = exportAs(state.tab);
+  writeHash();
+  try{ localStorage.setItem('chroma-bench', JSON.stringify(state)); }catch(e){}
+}
+
+/* ============================================================
+   CURVE EDITOR — Photoshop-style, drives layer 0
+   ============================================================ */
+const CV = $('curve');
+const cx = CV.getContext('2d');
+let picked = -1, dragging = false, frame = 0;
+
+const curvePts = () => state.custom[state.chan];
+const curveFn  = () => activeCurve()[state.chan];
+const isCustom = () => state.curve === 'custom';
+
+function cssVar(name){
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function drawCurve(){
+  const size = Math.max(160, Math.round(CV.clientWidth || 280));
+  const dpr = window.devicePixelRatio || 1;
+  if(CV.width !== Math.round(size*dpr)){ CV.width = Math.round(size*dpr); CV.height = Math.round(size*dpr); }
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx.clearRect(0, 0, size, size);
+
+  const L = 24, T = 10, R = 10, B = 24;          /* strips live in L and B */
+  const W = size - L - R, H = size - T - B;
+  const X = g => L + g/100*W;
+  const Y = v => T + (1-v)*H;
+  const line = cssVar('--outline-variant') || '#ddd';
+  const soft = cssVar('--outline') || '#999';
+  const ink  = cssVar('--text') || '#000';
+  const acc  = cssVar('--primary') || '#276ef1';
+  const f = curveFn();
+  const chanHex = g => state.chan === 'neutral' ? sourceGray(g) : colorAt(state.primary, g);
+
+  /* plot ground + quarter grid */
+  cx.fillStyle = cssVar('--s-lowest') || '#fff';
+  cx.fillRect(L, T, W, H);
+  cx.strokeStyle = line; cx.lineWidth = 1;
+  for(let i = 0; i <= 4; i++){
+    const gx = L + i/4*W, gy = T + i/4*H;
+    cx.beginPath(); cx.moveTo(Math.round(gx)+.5, T); cx.lineTo(Math.round(gx)+.5, T+H); cx.stroke();
+    cx.beginPath(); cx.moveTo(L, Math.round(gy)+.5); cx.lineTo(L+W, Math.round(gy)+.5); cx.stroke();
+  }
+  /* identity reference */
+  cx.save(); cx.setLineDash([3,3]); cx.strokeStyle = soft;
+  cx.beginPath(); cx.moveTo(L, T+H); cx.lineTo(L+W, T); cx.stroke(); cx.restore();
+
+  /* output strip (left) and grade strip (bottom), both showing real output */
+  for(let i = 0; i < H; i++){
+    const v = 1 - i/(H-1);
+    const g = Math.round(v*100);
+    cx.fillStyle = state.chan === 'neutral'
+      ? 'rgb(' + Math.round(v*255) + ',' + Math.round(v*255) + ',' + Math.round(v*255) + ')'
+      : chanHex(g);
+    cx.fillRect(4, T+i, 13, 1);
+  }
+  for(let i = 0; i < W; i++){
+    const g = i/(W-1)*100;
+    cx.fillStyle = chanHex(g);
+    cx.fillRect(L+i, size-18, 1, 13);
+  }
+  cx.strokeStyle = line;
+  cx.strokeRect(3.5, T-.5, 14, H+1);
+  cx.strokeRect(L-.5, size-18.5, W+1, 14);
+
+  /* the curve */
+  cx.strokeStyle = acc; cx.lineWidth = 2; cx.beginPath();
+  for(let i = 0; i <= 160; i++){
+    const g = i/160*100, px = X(g), py = Y(clamp01(f(g)));
+    i ? cx.lineTo(px, py) : cx.moveTo(px, py);
+  }
+  cx.stroke();
+
+  /* where the 13 grades land */
+  GRADES.forEach(g => {
+    const px = X(g), py = Y(clamp01(f(g)));
+    cx.strokeStyle = line;
+    cx.beginPath(); cx.moveTo(Math.round(px)+.5, T+H); cx.lineTo(Math.round(px)+.5, T+H+4); cx.stroke();
+    cx.fillStyle = chanHex(g);
+    cx.strokeStyle = ink; cx.lineWidth = 1;
+    cx.beginPath(); cx.arc(px, py, 3.2, 0, Math.PI*2); cx.fill(); cx.stroke();
+  });
+
+  /* control points */
+  if(isCustom()){
+    curvePts().forEach((pt, i) => {
+      const px = X(pt.x), py = Y(pt.y), r = i === picked ? 6 : 5;
+      cx.fillStyle = i === picked ? acc : (cssVar('--s-lowest') || '#fff');
+      cx.strokeStyle = i === picked ? acc : ink; cx.lineWidth = 1.5;
+      cx.beginPath(); cx.rect(px-r, py-r, r*2, r*2); cx.fill(); cx.stroke();
+    });
+  }
+}
+
+function renderCurveSide(){
+  const c = activeCurve(), f = curveFn();
+  $('curve-formula').innerHTML = '<b>' + c.label + '</b> · ' + c.formula +
+    (isCustom() ? ' · ' + curvePts().length + ' points' : '');
+  $('curve-read').innerHTML = [100, 90, 70, 50, 30, 10, 0].map(g => {
+    const v = clamp01(f(g));
+    const hex = state.chan === 'neutral' ? sourceGray(g) : colorAt(state.primary, g);
+    return '<div><i style="background:' + hex + '"></i>' +
+      '<span>g <b>' + g + '</b></span>' +
+      '<span>' + (v*100).toFixed(1) + '%</span>' +
+      '<span>' + hex.toUpperCase() + '</span></div>';
+  }).join('');
+}
+
+/* ---- interaction ---- */
+function evtPoint(e){
+  const r = CV.getBoundingClientRect();
+  const size = r.width, L = 24, T = 10, R = 10, B = 24;
+  const W = size - L - R, H = size - T - B;
+  return {
+    x: Math.max(0, Math.min(100, (e.clientX - r.left - L) / W * 100)),
+    y: clamp01(1 - (e.clientY - r.top - T) / H),
+    px: e.clientX - r.left, py: e.clientY - r.top, L, T, W, H,
+  };
+}
+function hitTest(p){
+  const pts = curvePts();
+  if(!pts) return -1;
+  let best = -1, bestD = 11;
+  pts.forEach((pt, i) => {
+    const dx = (p.L + pt.x/100*p.W) - p.px, dy = (p.T + (1-pt.y)*p.H) - p.py;
+    const d = Math.hypot(dx, dy);
+    if(d < bestD){ bestD = d; best = i; }
+  });
+  return best;
+}
+function commit(){
+  if(frame) return;
+  frame = requestAnimationFrame(() => { frame = 0; render(); });
+}
+function movePoint(i, x, y){
+  const pts = curvePts();
+  const first = i === 0, last = i === pts.length - 1;
+  pts[i].y = clamp01(y);
+  if(!first && !last){
+    pts[i].x = Math.max(pts[i-1].x + 0.5, Math.min(pts[i+1].x - 0.5, x));
+  }
+  commit();
+}
+
+CV.addEventListener('pointerdown', e => {
+  if(!isCustom()){ seedCustom(state.curve); state.curve = 'custom'; }
+  const p = evtPoint(e);
+  let i = hitTest(p);
+  if(i < 0){
+    const pts = curvePts(), np = { x:p.x, y:p.y };
+    pts.push(np);
+    pts.sort((a, b) => a.x - b.x);
+    i = pts.indexOf(np);
+  }
+  picked = i; dragging = true;
+  CV.setPointerCapture(e.pointerId);
+  CV.focus();
+  render();
+});
+CV.addEventListener('pointermove', e => {
+  if(!dragging || picked < 0) return;
+  const p = evtPoint(e);
+  movePoint(picked, p.x, p.y);
+});
+const endDrag = e => {
+  dragging = false;
+  if(e && e.pointerId !== undefined && CV.hasPointerCapture(e.pointerId)) CV.releasePointerCapture(e.pointerId);
+};
+CV.addEventListener('pointerup', endDrag);
+CV.addEventListener('pointercancel', endDrag);
+CV.addEventListener('blur', () => { dragging = false; });
+CV.addEventListener('dblclick', e => {
+  if(!isCustom()) return;
+  const p = evtPoint(e), i = hitTest(p);
+  const pts = curvePts();
+  if(i > 0 && i < pts.length - 1){ pts.splice(i, 1); picked = -1; render(); }
+});
+CV.addEventListener('keydown', e => {
+  if(!isCustom() || picked < 0) return;
+  const pts = curvePts();
+  const step = (e.shiftKey ? 5 : 1);
+  if(e.key === 'Delete' || e.key === 'Backspace'){
+    if(picked > 0 && picked < pts.length - 1){ pts.splice(picked, 1); picked = -1; render(); }
+    e.preventDefault(); return;
+  }
+  const map = { ArrowLeft:[-step,0], ArrowRight:[step,0], ArrowUp:[0,step/100], ArrowDown:[0,-step/100] };
+  const d = map[e.key];
+  if(!d) return;
+  e.preventDefault();
+  movePoint(picked, pts[picked].x + d[0], pts[picked].y + d[1]);
+});
+$('chan').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  state.chan = b.dataset.v; picked = -1; render();
+});
+$('curve-reset').addEventListener('click', () => { state.curve = 'source'; picked = -1; render(); });
+$('curve-linear').addEventListener('click', () => {
+  seedCustom('repo'); state.curve = 'custom'; picked = -1; render();
+});
+if(window.ResizeObserver) new ResizeObserver(() => drawCurve()).observe(CV);
+
+/* ============================================================
+   LAYER 0 VIEW — the source ramps every token is drawn from
+   ============================================================ */
+const fmtAlpha = a => (Math.round(a * 10) / 10).toString();
+
+function gradePos(grade){
+  const n = GRADES.length;
+  const center = i => (i + 0.5) / n * 100;
+  const i = GRADES.indexOf(grade);
+  if(i >= 0) return center(i);
+  const above = GRADES.filter(g => g > grade).pop();
+  const below = GRADES.find(g => g < grade);
+  return lerp(center(GRADES.indexOf(below)), center(GRADES.indexOf(above)), (grade - below) / (above - below));
+}
+
+function rampBlock(title, sub, ramp, marks, showAlpha){
+  const stops = GRADES.map(g => {
+    const hex = ramp[g];
+    const tok = marks.on[g] || [];
+    return '<button type="button" class="stop' + (tok.length ? ' bound' : '') + '" data-hex="' + hex + '"' +
+      ' title="' + g + ' · ' + hex.toUpperCase() + '"' +
+      ' style="background:' + hex + ';color:' + readableOn(hex) + '">' +
+      '<span class="g">' + g + '</span>' +
+      (showAlpha ? '<span class="a">@' + fmtAlpha(tintAlphaAt(g)) + '%</span>' : '') +
+      (tok.length ? '<span class="tok">' + tok.join('<br>') + '</span>' : '') +
+      '</button>';
+  }).join('');
+  const hexes = GRADES.map(g => '<code>' + ramp[g].toUpperCase() + '</code>').join('');
+  const sorted = marks.off.slice().sort((a,b) => gradePos(a.grade) - gradePos(b.grade));
+  const ticks = sorted.map((o,i) => {
+    const x = gradePos(o.grade).toFixed(2) + '%';
+    return '<i style="left:' + x + '"></i><b style="left:' + x + ';top:' + (i % 2 ? 20 : 10) + 'px">' + o.grade + '</b>';
+  }).join('');
+  const chips = sorted.map(o =>
+    '<span><i style="background:' + o.hex + '"></i>' + o.grade + ' · ' + o.label + ' · ' + o.hex.toUpperCase() + '</span>').join('');
+  return '<div class="ramp-block">' +
+    '<div class="ramp-title"><b>' + title + '</b><span>' + sub + '</span></div>' +
+    '<div class="ramp-scroll"><div class="ramp-inner">' +
+      '<div class="ramp-strip">' + stops + '</div>' +
+      '<div class="ramp-hexes">' + hexes + '</div>' +
+      (ticks ? '<div class="ramp-ticks" style="height:34px">' + ticks + '</div>' : '') +
+    '</div></div>' +
+    (chips ? '<div class="offgrid">' + chips + '</div>' : '') +
+  '</div>';
+}
+
+function surfaceMarks(theme, ramp){
+  const on = {}, off = [];
+  for(const [token, g] of Object.entries(SURFACE_GRADE[theme])){
+    if(GRADES.includes(g)) (on[g] = on[g] || []).push(token);
+    else off.push({ grade:g, label:token, hex:ramp[g] !== undefined ? ramp[g] : sourceGray(g) });
+  }
+  return { on, off };
+}
+
+function renderSource(){
+  const { cs, st } = current;
+  const pRamp = buildRamp(state.primary);
+  const gRamp = buildSurfaceRamp();
+  const tRamp = buildTintedRamp(state.primary);
+  const theme = state.theme;
+
+  const sMarks = surfaceMarks(theme, gRamp);
+  const tMarks = { on:sMarks.on, off:sMarks.off.map(o => ({ ...o,
+    hex: blendWithAlpha(sourceGray(o.grade), state.primary, tintAlphaAt(o.grade)) })) };
+
+  const blocks = [];
+  blocks.push(rampBlock('Primary Color Gradation',
+    'base ' + state.primary.toUpperCase() + ' · user input @ 40',
+    pRamp,
+    { on:{ 100:['onPrimary'], 90:['primaryVariant'], 40:['primary'], 10:['onPrimaryVariant'] },
+      off:[{ grade:25, label:'primary2', hex:cs.primary2 }] }));
+
+  blocks.push(rampBlock('Default Surface Gradation',
+    activeCurve().label.toLowerCase() + ' · ' + activeCurve().formula,
+    gRamp, sMarks));
+
+  blocks.push(rampBlock('Primary Color Treated Surface Gradation',
+    'gray + ' + state.primary.toUpperCase() + ' (채도 50%) · ' +
+      (isRepo() ? 'repo 토큰별 알파 × ' + (state.tint.strength/10).toFixed(2)
+                : TINT_SHAPES[state.tint.shape].label.toLowerCase() + ' · peak ' + fmtAlpha(state.tint.strength) + '% @ 50') +
+      (state.mode === 'primary' ? ' · 현재 적용 중' : ' · 미적용 (surface mode = default)'),
+    tRamp, tMarks, !isRepo()));
+
+  ['error','warning','success'].forEach(name => {
+    const cap = name[0].toUpperCase() + name.slice(1);
+    blocks.push(rampBlock(cap,
+      'base ' + state.status[name].toUpperCase(),
+      buildRamp(state.status[name]),
+      { on:{ 100:['on' + cap], 90:[name + 'Container'], 40:[name], 10:['on' + cap + 'Container'] }, off:[] }));
+  });
+
+  $('src').innerHTML = blocks.join('');
+}
+
+$('src').addEventListener('click', e => {
+  const b = e.target.closest('.stop'); if(!b) return;
+  copy(b.dataset.hex, b.dataset.hex.toUpperCase() + ' 복사됨');
+});
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+const kebab = s => s.replace(/([a-z0-9])([A-Z])/g,'$1-$2').toLowerCase();
+function allTokens(){
+  const { cs, sf, st } = current;
+  return { ...cs, ...sf, ...st };
+}
+function sourceRamps(){
+  return {
+    primary: buildRamp(state.primary),
+    surface: buildSurfaceRamp(),
+    surfaceTinted: buildTintedRamp(state.primary),
+    error: buildRamp(state.status.error),
+    warning: buildRamp(state.status.warning),
+    success: buildRamp(state.status.success),
+  };
+}
+
+function exportAs(kind){
+  const { cs, sf, st, surfaces } = current;
+  const t = allTokens();
+  const src = sourceRamps();
+  if(kind === 'css'){
+    const block = obj => Object.entries(obj).map(([k,v]) => '  --'+kebab(k)+': '+v+';').join('\n');
+    const srcBlock = Object.entries(src).map(([name, ramp]) =>
+      '  /* ' + name + ' */\n' + GRADES.map(g => '  --src-' + kebab(name) + '-' + g + ': ' + ramp[g] + ';').join('\n')
+    ).join('\n');
+    return '/* generated by Chroma Bench — curve: '+state.curve+', mode: '+state.mode+' */\n\n' +
+      '/* layer 0 — color source */\n:root {\n' + srcBlock + '\n}\n\n' +
+      '/* layer 1 — semantic */\n:root {\n' +
+      block(cs) + '\n\n' + block(surfaces.light) + '\n\n' + block(st) + '\n}\n\n' +
+      '@media (prefers-color-scheme: dark) {\n  :root {\n' +
+      Object.entries(surfaces.dark).map(([k,v]) => '    --'+kebab(k)+': '+v+';').join('\n') +
+      '\n  }\n}\n';
+  }
+  if(kind === 'tw'){
+    const colors = Object.fromEntries(Object.entries(t).map(([k,v]) => [kebab(k), v]));
+    for(const [name, ramp] of Object.entries(src)) colors[kebab(name)+'-scale'] = ramp;
+    return '// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: ' +
+      JSON.stringify(colors, null, 8).replace(/\n/g,'\n      ') + '\n    },\n  },\n};\n';
+  }
+  if(kind === 'json'){
+    return JSON.stringify({
+      meta:{ generator:'Chroma Bench', engine:'drft_1 colorSystem',
+             curve:state.curve, formula:activeCurve().formula,
+             tint:{ strength:state.tint.strength, shape:state.tint.shape },
+             mode:state.mode, base:state.primary, grades:GRADES },
+      source: src,
+      semantic:{ primary: cs, surface: surfaces, status: st },
+    }, null, 2);
+  }
+  if(kind === 'figma'){
+    const grp = obj => Object.fromEntries(Object.entries(obj).map(([k,v]) => [kebab(k), { value:v, type:'color' }]));
+    return JSON.stringify({
+      source: Object.fromEntries(Object.entries(src).map(([name, ramp]) => [kebab(name), grp(ramp)])),
+      primary: grp(cs),
+      surface: { light:grp(surfaces.light), dark:grp(surfaces.dark) },
+      status: grp(st),
+    }, null, 2);
+  }
+  /* swift */
+  const swiftName = k => k.replace(/-(.)/g, (_,c) => c.toUpperCase());
+  const line = ([k,v]) => {
+    const { r,g,b } = hexToRGB(v.slice(0,7));
+    return '    static let ' + swiftName(k) + ' = Color(red: ' + (r/255).toFixed(3) +
+      ', green: ' + (g/255).toFixed(3) + ', blue: ' + (b/255).toFixed(3) + ')';
+  };
+  const srcEnums = Object.entries(src).map(([name, ramp]) =>
+    '        enum ' + name[0].toUpperCase() + name.slice(1) + ' {\n' +
+    GRADES.map(g => '        ' + line(['g'+g, ramp[g]])).join('\n') + '\n        }'
+  ).join('\n');
+  return 'import SwiftUI\n\n/* Color.primary 등 시스템 이름과 겹치지 않도록 네임스페이스로 감쌌습니다. */\nenum Palette {\n' +
+    Object.entries(t).map(line).join('\n') +
+    '\n\n    /* layer 0 — color source */\n    enum Source {\n' + srcEnums + '\n    }\n}\n';
+}
+
+/* ============================================================
+   INTERACTION
+   ============================================================ */
+let toastTimer;
+function copy(text, msg){
+  const done = () => {
+    const el = $('toast');
+    el.textContent = msg || '복사됨';
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('on'), 1600);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done, () => fallback(text, done));
+  } else fallback(text, done);
+}
+function fallback(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); done(); }catch(e){}
+  ta.remove();
+}
+
+$('pick').addEventListener('input', e => { state.primary = e.target.value.toUpperCase(); render(); });
+$('hex').addEventListener('input', e => {
+  let v = e.target.value.trim();
+  if(v && v[0] !== '#') v = '#'+v;
+  const ok = /^#[0-9a-fA-F]{6}$/.test(v);
+  $('hexwrap').classList.toggle('bad', !ok && v.length > 1);
+  if(ok){ state.primary = v.toUpperCase(); render(); }
+});
+$('rand').addEventListener('click', () => {
+  const h = Math.floor(Math.random()*360);
+  const rgb = hslToRgb(h, 55 + Math.random()*35, 38 + Math.random()*16);
+  state.primary = rgbToHex(rgb).toUpperCase();
+  render();
+});
+['error','warning','success'].forEach(k => {
+  $('c-'+k).addEventListener('input', e => { state.status[k] = e.target.value.toUpperCase(); render(); });
+});
+$('mode').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  state.mode = b.dataset.v; render();
+});
+$('theme').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  state.theme = b.dataset.v; render();
+});
+$('tint').addEventListener('input', e => {
+  state.tint.strength = Number(e.target.value);
+  render();
+});
+$('tint-shape').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  state.tint.shape = b.dataset.v; render();
+});
+$('curve-pick').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.dataset.v === 'custom' && !state.custom.neutral) seedCustom(state.curve);
+  state.curve = b.dataset.v;
+  render();
+});
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  state.tab = b.dataset.v; render();
+});
+$('copy-code').addEventListener('click', () => copy($('out').textContent, state.tab.toUpperCase() + ' 복사됨'));
+
+const curveWrap = $('curve-pick');
+CURVE_IDS.forEach(id => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.dataset.v = id; b.textContent = CURVES[id].label;
+  b.title = CURVES[id].desc + ' · ' + CURVES[id].formula;
+  curveWrap.appendChild(b);
+});
+
+const presetWrap = $('presets');
+PRESETS.forEach(c => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.style.background = c; b.title = c;
+  b.setAttribute('aria-label', 'preset ' + c);
+  b.addEventListener('click', () => { state.primary = c; render(); });
+  presetWrap.appendChild(b);
+});
+
+/* boot */
+try{
+  const saved = JSON.parse(localStorage.getItem('chroma-bench') || 'null');
+  if(saved && typeof saved === 'object'){
+    Object.assign(state, saved, {
+      status:{ ...state.status, ...(saved.status || {}) },
+      tint:{ ...state.tint, ...(saved.tint || {}) },
+    });
+    if(!TINT_SHAPES[state.tint.shape]) state.tint.shape = 'sheet';
+    if(!(state.tint.strength >= 0 && state.tint.strength <= 60)) state.tint.strength = 10;
+  }
+}catch(e){}
+readHash();
+if(state.curve === 'custom' && !(state.custom && state.custom.neutral && state.custom.color)) seedCustom('source');
+render();
+</script>
