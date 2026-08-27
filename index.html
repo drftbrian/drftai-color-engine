@@ -18,6 +18,8 @@
     --rail:336px;
   }
   *{box-sizing:border-box}
+  /* class-level display rules below would otherwise beat the UA's [hidden] rule */
+  [hidden]{display:none!important}
   html,body{margin:0;padding:0}
   body{
     background:var(--bg); color:var(--text);
@@ -171,6 +173,51 @@
   .legend span{display:inline-flex;align-items:center;gap:6px}
   .legend i{width:13px;height:13px;border-radius:2px;box-shadow:inset 0 0 0 2px var(--text);display:inline-block}
   .legend u{width:13px;height:1px;background:var(--outline);text-decoration:none}
+  .view{display:flex;flex-direction:column;gap:40px;min-width:0}
+  .viewtabs{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--outline-variant);padding-bottom:14px}
+  .viewtabs button{flex:1 1 240px;text-align:left;border:1px solid var(--outline-variant);background:var(--s-low);
+    border-radius:5px;padding:12px 15px;cursor:pointer;transition:.15s;
+    display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--text2)}
+  .viewtabs button em{font-style:normal;font-size:10px;opacity:.8;letter-spacing:.02em}
+  .viewtabs button:hover:not([aria-pressed="true"]){border-color:var(--primary);color:var(--primary)}
+  .viewtabs button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+
+  /* atomic: hue palette grids */
+  .pal{display:flex;flex-direction:column;gap:4px}
+  .pal-row{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px;align-items:center}
+  .pal-row > b{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text2);letter-spacing:.04em}
+  .pal-steps{display:grid;gap:0;border-radius:3px;overflow:hidden;border:1px solid var(--outline-variant)}
+  .pal-steps button{border:0;padding:0;height:26px;cursor:pointer;position:relative;
+    font-family:var(--mono);font-size:8px;display:flex;align-items:center;justify-content:center;transition:transform .1s}
+  .pal-steps button:hover{transform:scaleY(1.35);z-index:2}
+  .pal-head{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px}
+  .pal-head div{display:grid;font-family:var(--mono);font-size:8.5px;color:var(--text2);text-align:center;
+    letter-spacing:.02em;font-variant-numeric:tabular-nums}
+
+  /* atomic: light / dark reference panels */
+  .themepair{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px}
+  .tpanel{border:1px solid var(--outline-variant);border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:20px}
+  .tpanel > h3{margin:0;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em}
+  .tgroup{display:flex;flex-direction:column;gap:9px}
+  .tgroup > b{font-size:12px;font-weight:600}
+  .tgroup > span.sub{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;opacity:.6}
+  .tokens{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .tok{display:flex;flex-direction:column;gap:5px;cursor:pointer;background:none;border:0;padding:0;text-align:left}
+  .tok i{height:44px;border-radius:3px;display:block;border:1px solid rgba(128,128,128,.35);
+    background-image:linear-gradient(45deg,rgba(128,128,128,.22) 25%,transparent 25%,transparent 75%,rgba(128,128,128,.22) 75%),
+      linear-gradient(45deg,rgba(128,128,128,.22) 25%,transparent 25%,transparent 75%,rgba(128,128,128,.22) 75%);
+    background-size:10px 10px;background-position:0 0,5px 5px}
+  .tok i span{display:block;height:100%;border-radius:2px}
+  .tok em{font-style:normal;font-family:var(--mono);font-size:9px;line-height:1.35;letter-spacing:.01em}
+  .tok u{text-decoration:none;font-family:var(--mono);font-size:8.5px;opacity:.62;letter-spacing:.01em}
+  .tok:hover em{text-decoration:underline}
+
+  .xcheck{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+  .xrow{border:1px solid var(--outline-variant);border-radius:4px;padding:12px 14px;display:flex;
+    flex-direction:column;gap:7px}
+  .xrow .lead{font-size:14px;font-weight:600}
+  .xrow .meta{font-family:var(--mono);font-size:9.5px;opacity:.75;letter-spacing:.02em}
+
   .slider-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
   .slider-head b{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);
     font-variant-numeric:tabular-nums}
@@ -283,7 +330,18 @@
       <p class="chip-desc" id="curve-desc"></p>
     </div>
 
-    <div class="field">
+    <div class="field" id="field-chroma" hidden>
+      <span class="lbl">Muted Chroma</span>
+      <div class="slider-head">
+        <span class="chip-desc">saturated 대비 채도</span>
+        <b id="chroma-val">42%</b>
+      </div>
+      <input type="range" id="chroma" min="0" max="100" step="1" value="42"
+        aria-label="Muted palette chroma, percent of the saturated palette">
+      <div class="slider-scale"><span>0%</span><span>50%</span><span>100%</span></div>
+    </div>
+
+    <div class="field" id="field-status">
       <span class="lbl">Status Colors</span>
       <div class="status-grid">
         <div class="status-row">
@@ -306,6 +364,12 @@
   </aside>
 
   <main class="canvas">
+    <nav class="viewtabs" id="viewtabs" aria-label="Color system">
+      <button data-v="drft" aria-pressed="true">DRFT ENGINE<em>13 grades · surface / status</em></button>
+      <button data-v="atomic" aria-pressed="false">ATOMIC SYSTEM<em>0–1000 steps · background / foreground / border</em></button>
+    </nav>
+
+    <div class="view" id="view-drft">
     <section class="step">
       <div class="step-head">
         <span class="grade">10 · 25 · 40 · 90 · 100</span>
@@ -417,6 +481,72 @@
       </div>
       <div class="src" id="src"></div>
     </section>
+    </div><!-- /view-drft -->
+
+    <div class="view" id="view-atomic" hidden>
+      <section class="step">
+        <div class="step-head">
+          <span class="grade">LAYER 0</span>
+          <h2>Atomic colors</h2>
+          <p>step = 1000 − grade × 10 · 같은 커브 엔진, 다른 샘플링</p>
+        </div>
+        <div class="src" id="atomic-src"></div>
+      </section>
+
+      <section class="step">
+        <div class="step-head">
+          <span class="grade">LAYER 1</span>
+          <h2>Semantic colors</h2>
+          <p>background · foreground · border</p>
+        </div>
+        <div class="themepair" id="a-semantic"></div>
+      </section>
+
+      <section class="step">
+        <div class="step-head">
+          <span class="grade">LAYER 1</span>
+          <h2>Status colors</h2>
+          <p>error · warning · success · info</p>
+        </div>
+        <div class="themepair" id="a-status"></div>
+      </section>
+
+      <section class="step">
+        <div class="step-head">
+          <span class="grade">LAYER 1</span>
+          <h2>Overlay &amp; Frost</h2>
+          <p>Opacity 스케일에서 직접 파생 · elevation 제외</p>
+        </div>
+        <div class="themepair" id="a-overlay"></div>
+      </section>
+
+      <section class="step">
+        <div class="step-head">
+          <span class="grade">CROSS-CHECK</span>
+          <h2>Contrast</h2>
+          <p>foreground × background 조합의 WCAG 대비</p>
+        </div>
+        <div class="xcheck" id="a-contrast"></div>
+      </section>
+
+      <section class="step export">
+        <div class="step-head">
+          <span class="grade">EXPORT</span>
+          <h2>Hand-off</h2>
+          <p>atomic + semantic 전체</p>
+        </div>
+        <div class="tabs" id="atabs">
+          <button data-v="css" aria-pressed="true">CSS VARIABLES</button>
+          <button data-v="tw" aria-pressed="false">TAILWIND</button>
+          <button data-v="json" aria-pressed="false">JSON</button>
+          <button data-v="figma" aria-pressed="false">FIGMA TOKENS</button>
+        </div>
+        <div class="code">
+          <div class="copy"><button id="acopy">Copy</button></div>
+          <pre id="aout"></pre>
+        </div>
+      </section>
+    </div><!-- /view-atomic -->
   </main>
 </div>
 
@@ -559,7 +689,10 @@ function splineAt(pts, x){
 }
 
 /* the original integer arithmetic, kept exact for the two reference curves */
-const LINEAR_FACTOR = grade => Math.abs((grade - 40) / (grade > 40 ? 60 : -40));
+const LINEAR_FACTOR = (grade, pivot) => {
+  const p = pivot === undefined ? 40 : pivot;
+  return Math.abs((grade - p) / (grade > p ? (100 - p) : -p));
+};
 
 const CURVES = {
   source:{ label:'SOURCE', desc:'시트 원본',
@@ -602,11 +735,12 @@ const getGrayScale = sourceGray;
 /* grade → base color pushed toward white (above 40) or black (below 40).
    The travel distance is read off the color curve, so grade 40 always
    returns the user's input color untouched, whatever the curve. */
-function interpolatePrimary(grade, base){
-  const target = grade > 40 ? 255 : 0;
-  const pivot = colorLevel(40), level = colorLevel(grade);
+function interpolatePrimary(grade, base, pivotGrade){
+  const pg = pivotGrade === undefined ? 40 : pivotGrade;
+  const target = grade > pg ? 255 : 0;
+  const pivot = colorLevel(pg), level = colorLevel(grade);
   const own = activeCurve().factor;
-  const factor = clamp01(own ? own(grade) : (grade > 40
+  const factor = clamp01(own ? own(grade, pg) : (grade > pg
     ? (pivot < 1 ? (level - pivot) / (1 - pivot) : 1)
     : (pivot > 0 ? (pivot - level) / pivot : 1)));
   return {
@@ -615,13 +749,143 @@ function interpolatePrimary(grade, base){
     b: quant(lerp(base.b, target, factor)),
   };
 }
-const colorAt = (baseColor, grade) => rgbToHex(interpolatePrimary(grade, hexToRGB(baseColor)));
+const colorAt = (baseColor, grade, pivot) =>
+  rgbToHex(interpolatePrimary(grade, hexToRGB(baseColor), pivot));
 
 /* the three source ramps, 13 stops each */
 const buildRamp = baseColor => Object.fromEntries(GRADES.map(g => [g, colorAt(baseColor, g)]));
 const buildSurfaceRamp = () => Object.fromEntries(GRADES.map(g => [g, sourceGray(g)]));
 const buildTintedRamp = primary => Object.fromEntries(
   GRADES.map(g => [g, blendWithAlpha(sourceGray(g), primary, tintAlphaAt(g))]));
+
+/* ============================================================
+   ATOMIC SYSTEM — the second taxonomy
+   Same curve engine, different sampling and naming:
+     step 0…1000  ⇄  grade 100…0   (grade = (1000 − step) / 10)
+   ============================================================ */
+const ATOMIC_STEPS  = [0, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950, 1000];
+const HUE_STEPS     = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+const OPACITY_STEPS = [0, 4, 8, 12, 16, 24, 32, 40, 48, 56, 64, 72];
+const stepToGrade = step => (1000 - step) / 10;
+const HUE_PIVOT = 50;   /* step 500 is each hue's base */
+
+/* hue anchors, defined at step 500 — chroma is what separates the two palettes */
+const HUES = [
+  { name:'brown',  h:24,  s:38, l:44 },
+  { name:'red',    h:358, s:70, l:52 },
+  { name:'orange', h:26,  s:92, l:52 },
+  { name:'yellow', h:45,  s:94, l:50 },
+  { name:'citron', h:66,  s:78, l:46 },
+  { name:'sprout', h:88,  s:70, l:46 },
+  { name:'green',  h:140, s:62, l:42 },
+  { name:'teal',   h:176, s:64, l:38 },
+  { name:'blue',   h:222, s:80, l:52 },
+  { name:'purple', h:272, s:58, l:52 },
+  { name:'pink',   h:332, s:70, l:54 },
+];
+
+/* Common Palette — the neutral ramp, tinted by the same strength slider */
+function atomicNeutral(step){
+  const g = stepToGrade(step);
+  const gray = sourceGray(g);
+  return state.mode === 'primary' ? blendWithAlpha(gray, state.primary, tintAlphaAt(g)) : gray;
+}
+const atomicNeutralRamp = () => Object.fromEntries(ATOMIC_STEPS.map(v => [v, atomicNeutral(v)]));
+
+/* Muted / Saturated — one hue anchor, chroma-scaled, then ramped by the curve */
+const hueBase = (hue, chroma) =>
+  rgbToHex(hslToRgb(hue.h, Math.max(0, Math.min(100, hue.s * chroma)), hue.l));
+const hueRamp = (hue, chroma) => {
+  const base = hueBase(hue, chroma);
+  return Object.fromEntries(HUE_STEPS.map(v => [v, colorAt(base, stepToGrade(v), HUE_PIVOT)]));
+};
+const paletteFor = chroma => Object.fromEntries(HUES.map(h => [h.name, hueRamp(h, chroma)]));
+const atomicPalettes = () => ({
+  neutral: atomicNeutralRamp(),
+  muted: paletteFor(state.chroma / 100),
+  saturated: paletteFor(1),
+});
+
+/* 8-digit hex, so an alpha token stays one exportable value */
+const withAlpha = (hex, pct) =>
+  hex.slice(0, 7) + Math.round(Math.max(0, Math.min(100, pct)) / 100 * 255).toString(16).padStart(2, '0');
+
+/* ---------- ATOMIC → SEMANTIC bindings -----------------------------------
+   Every token names the atomic value it resolves to, per theme:
+     ['n', step]            a Common Palette step
+     ['s', hue, step]       a Saturated Palette step
+     ['a', step, opacity]   a Common Palette step at an Opacity step
+   -------------------------------------------------------------------------- */
+const A_SEMANTIC = {
+  background:{
+    primary:         { light:['n',0],    dark:['n',950] },
+    primaryActive:   { light:['n',50],   dark:['n',900] },
+    secondary:       { light:['n',50],   dark:['n',900] },
+    secondaryActive: { light:['n',100],  dark:['n',800] },
+    tertiary:        { light:['n',100],  dark:['n',800] },
+    tertiaryActive:  { light:['n',200],  dark:['n',700] },
+    inverse:         { light:['n',1000], dark:['n',0]   },
+    inverseActive:   { light:['n',900],  dark:['n',50]  },
+    disabled:        { light:['n',100],  dark:['n',800] },
+  },
+  foreground:{
+    primary:     { light:['n',1000], dark:['n',0]    },
+    secondary:   { light:['n',700],  dark:['n',300]  },
+    tertiary:    { light:['n',500],  dark:['n',500]  },
+    quarternary: { light:['n',400],  dark:['n',600]  },
+    inverse:     { light:['n',0],    dark:['n',1000] },
+    disabled:    { light:['n',300],  dark:['n',700]  },
+  },
+  border:{
+    default:  { light:['n',200],  dark:['n',800] },
+    light:    { light:['n',100],  dark:['n',900] },
+    strong:   { light:['n',400],  dark:['n',600] },
+    disabled: { light:['n',100],  dark:['n',900] },
+    inverse:  { light:['n',1000], dark:['n',0]   },
+    frost:    { light:['a',0,12], dark:['a',0,12] },
+  },
+};
+
+const A_STATUS_HUE  = { error:'red', warning:'yellow', success:'green', info:'blue' };
+const A_STATUS_ROLE = {
+  background:{
+    base:       { light:500, dark:500 },
+    active:     { light:600, dark:400 },
+    tint:       { light:50,  dark:900 },
+    tintActive: { light:100, dark:800 },
+  },
+};
+
+/* Foreground / border steps are not fixed: each hue takes the first step that
+   clears its own tint by the required ratio. Yellow needs to go much darker
+   than blue for the same legibility, so a single hard-coded step can't work. */
+const A_STATUS_FG = { light:[600, 700, 800, 900], dark:[400, 300, 200] };
+const A_STATUS_BD = { light:[500, 600, 700],      dark:[400, 500, 300] };
+function pickStep(ramp, against, candidates, min){
+  for(const st of candidates) if(contrast(ramp[st], against) >= min) return st;
+  return candidates[candidates.length - 1];
+}
+function statusSteps(hue, theme, pal){
+  const ramp = pal.saturated[hue];
+  const tint = ramp[A_STATUS_ROLE.background.tint[theme]];
+  return {
+    foreground: pickStep(ramp, tint, A_STATUS_FG[theme], 4.5),
+    border:     pickStep(ramp, tint, A_STATUS_BD[theme], 3),
+  };
+}
+
+/* Overlay + Frost read straight off the Opacity scale */
+const A_OVERLAY = { default:48, subtle:8, light:16, medium:32, strong:64 };
+const A_FROST   = { default:64, light:48, strong:72 };
+
+function resolveAtomic(ref, pal){
+  if(!ref) return null;
+  if(ref[0] === 'n') return { hex:pal.neutral[ref[1]], ref:'neutral/' + ref[1] };
+  if(ref[0] === 's') return { hex:pal.saturated[ref[1]][ref[2]], ref:'saturated/' + ref[1] + '/' + ref[2] };
+  if(ref[0] === 'a') return { hex:withAlpha(pal.neutral[ref[1]], ref[2]),
+                              ref:'neutral/' + ref[1] + ' @ ' + ref[2] + '%' };
+  return null;
+}
 
 /* ---------- LAYER 1 · SEMANTIC ------------------------------------------- */
 /* every semantic token is a grade lookup into a layer-0 ramp */
@@ -711,7 +975,10 @@ const state = {
   mode:'default',
   theme:'light',
   status:{ error:'#EA4335', warning:'#F7C137', success:'#3DDC84' },
+  view:'drft',
   curve:'source',
+  chroma:42,
+  atab:'css',
   tint:{ strength:10, shape:'sheet' },
   custom:{ neutral:null, color:null },
   chan:'neutral',
@@ -739,6 +1006,12 @@ function readHash(){
   state.mode  = pick('m', ['default','primary']) || state.mode;
   state.theme = pick('t', ['light','dark'])      || state.theme;
   state.curve = pick('k', CURVE_IDS) || pick('b', ['source','repo']) || state.curve;
+  state.view  = pick('v', ['drft','atomic']) || state.view;
+  const chRaw = p.get('ch');
+  if(chRaw !== null && chRaw !== ''){
+    const ch = Number(chRaw);
+    if(Number.isFinite(ch) && ch >= 0 && ch <= 100) state.chroma = ch;
+  }
   const pts = raw => {
     const out = String(raw || '').split(',').map(seg => {
       const [x, y] = seg.split(':').map(Number);
@@ -758,7 +1031,8 @@ function readHash(){
 function writeHash(){
   const p = new URLSearchParams({ p:state.primary, m:state.mode, t:state.theme, k:state.curve,
     e:state.status.error, w:state.status.warning, s:state.status.success,
-    ts:Math.round(state.tint.strength * 10), tp:state.tint.shape });
+    ts:Math.round(state.tint.strength * 10), tp:state.tint.shape,
+    v:state.view, ch:state.chroma });
   if(state.curve === 'custom' && state.custom.neutral){
     const enc = arr => arr.map(pt => Math.round(pt.x*10) + ':' + Math.round(pt.y*1000)).join(',');
     p.set('cn', enc(state.custom.neutral));
@@ -920,10 +1194,26 @@ function render(){
       '<i style="background:'+st[k]+'"></i>'+msg+'</div>';
   }).join('');
 
-  renderSource();
-  drawCurve();
-  renderCurveSide();
-  $('out').textContent = exportAs(state.tab);
+  const atomicView = state.view === 'atomic';
+  $('view-drft').hidden = atomicView;
+  $('view-atomic').hidden = !atomicView;
+  $('field-chroma').hidden = !atomicView;
+  $('field-status').hidden = atomicView;
+  document.querySelectorAll('#viewtabs button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.v === state.view)));
+  document.querySelectorAll('#atabs button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.v === state.atab)));
+  $('chroma').value = state.chroma;
+  $('chroma-val').textContent = state.chroma + '%';
+
+  if(atomicView){
+    renderAtomic();
+  } else {
+    renderSource();
+    drawCurve();
+    renderCurveSide();
+    $('out').textContent = exportAs(state.tab);
+  }
   writeHash();
   try{ localStorage.setItem('chroma-bench', JSON.stringify(state)); }catch(e){}
 }
@@ -1227,6 +1517,288 @@ $('src').addEventListener('click', e => {
   const b = e.target.closest('.stop'); if(!b) return;
   copy(b.dataset.hex, b.dataset.hex.toUpperCase() + ' 복사됨');
 });
+
+/* ============================================================
+   ATOMIC VIEW
+   ============================================================ */
+const cap = w => w[0].toUpperCase() + w.slice(1);
+const A_OVERLAY_BASE = { light:1000, dark:1000 };
+const A_FROST_BASE   = { light:0,    dark:1000 };
+
+function stripBlock(title, sub, cells, checker){
+  const n = cells.length;
+  const cols = 'grid-template-columns:repeat(' + n + ',1fr)';
+  const strip = cells.map(c =>
+    '<button type="button" class="stop" data-hex="' + c.hex + '"' +
+    ' title="' + c.label + ' · ' + c.hex.toUpperCase() + '"' +
+    ' style="background:' + c.hex + ';color:' + readableOn(c.hex) + '">' +
+    '<span class="g">' + c.label + '</span>' +
+    (c.note ? '<span class="a">' + c.note + '</span>' : '') + '</button>').join('');
+  const hexes = cells.map(c => '<code>' + c.hex.toUpperCase() + '</code>').join('');
+  return '<div class="ramp-block">' +
+    '<div class="ramp-title"><b>' + title + '</b><span>' + sub + '</span></div>' +
+    '<div class="ramp-scroll"><div class="ramp-inner">' +
+      '<div class="ramp-strip" style="' + cols +
+        (checker ? ';background-image:linear-gradient(45deg,rgba(128,128,128,.25) 25%,transparent 25%,transparent 75%,rgba(128,128,128,.25) 75%),linear-gradient(45deg,rgba(128,128,128,.25) 25%,transparent 25%,transparent 75%,rgba(128,128,128,.25) 75%);background-size:12px 12px;background-position:0 0,6px 6px' : '') +
+        '">' + strip + '</div>' +
+      '<div class="ramp-hexes" style="' + cols + '">' + hexes + '</div>' +
+    '</div></div></div>';
+}
+
+function paletteBlock(title, sub, palette){
+  const cols = 'grid-template-columns:repeat(' + HUE_STEPS.length + ',1fr)';
+  const head = '<div class="pal-head"><span></span><div style="' + cols + '">' +
+    HUE_STEPS.map(v => '<span>' + v + '</span>').join('') + '</div></div>';
+  const rows = HUES.map(h => {
+    const ramp = palette[h.name];
+    return '<div class="pal-row"><b>' + h.name + '</b><div class="pal-steps" style="' + cols + '">' +
+      HUE_STEPS.map(v => '<button type="button" data-hex="' + ramp[v] + '"' +
+        ' title="' + h.name + '/' + v + ' · ' + ramp[v].toUpperCase() + '"' +
+        ' style="background:' + ramp[v] + '"></button>').join('') +
+      '</div></div>';
+  }).join('');
+  return '<div class="ramp-block">' +
+    '<div class="ramp-title"><b>' + title + '</b><span>' + sub + '</span></div>' +
+    '<div class="ramp-scroll"><div class="ramp-inner" style="min-width:660px">' +
+      '<div class="pal">' + head + rows + '</div>' +
+    '</div></div></div>';
+}
+
+const tokenEl = (name, hex, ref) =>
+  '<button type="button" class="tok" data-hex="' + hex + '" title="클릭해서 복사 · ' + hex.toUpperCase() + '">' +
+  '<i><span style="background:' + hex + '"></span></i>' +
+  '<em>' + name + '</em><u>' + ref + '</u></button>';
+
+function panelShell(theme, pal, inner){
+  const bg = resolveAtomic(A_SEMANTIC.background.primary[theme], pal).hex;
+  const fg = resolveAtomic(A_SEMANTIC.foreground.primary[theme], pal).hex;
+  const line = resolveAtomic(A_SEMANTIC.border.default[theme], pal).hex;
+  return '<div class="tpanel" style="background:' + bg + ';color:' + fg + ';border-color:' + line + '">' +
+    '<h3>' + theme.toUpperCase() + '</h3>' + inner + '</div>';
+}
+const group = (title, sub, tokens) =>
+  '<div class="tgroup"><b>' + title + '</b>' + (sub ? '<span class="sub">' + sub + '</span>' : '') +
+  '<div class="tokens">' + tokens + '</div></div>';
+
+function renderAtomicSemantic(theme, pal){
+  const inner = ['background','foreground','border'].map(g =>
+    group(cap(g), '', Object.entries(A_SEMANTIC[g]).map(([k, refs]) => {
+      const r = resolveAtomic(refs[theme], pal);
+      return tokenEl(k, r.hex, r.ref);
+    }).join(''))).join('');
+  return panelShell(theme, pal, inner);
+}
+
+function renderAtomicStatus(theme, pal){
+  const bgGroups = Object.keys(A_STATUS_HUE).map(st => {
+    const hue = A_STATUS_HUE[st];
+    return group(cap(st), 'saturated / ' + hue,
+      Object.entries(A_STATUS_ROLE.background).map(([role, m]) => {
+        const step = m[theme];
+        return tokenEl(role, pal.saturated[hue][step], 'saturated/' + hue + '/' + step);
+      }).join(''));
+  }).join('');
+  const line = (role, min) => group(cap(role), 'tint 대비 ' + min + ':1 이상인 첫 step',
+    Object.keys(A_STATUS_HUE).map(st => {
+      const hue = A_STATUS_HUE[st], step = statusSteps(hue, theme, pal)[role];
+      return tokenEl(st, pal.saturated[hue][step], 'saturated/' + hue + '/' + step);
+    }).join(''));
+  return panelShell(theme, pal,
+    '<div class="tgroup"><b>Background</b></div>' + bgGroups +
+    line('foreground', 4.5) + line('border', 3));
+}
+
+function renderAtomicOverlay(theme, pal){
+  const ov = group('Overlay', 'neutral/' + A_OVERLAY_BASE[theme] + ' × opacity',
+    Object.entries(A_OVERLAY).map(([k, a]) =>
+      tokenEl(k, withAlpha(pal.neutral[A_OVERLAY_BASE[theme]], a),
+        'neutral/' + A_OVERLAY_BASE[theme] + ' @ ' + a + '%')).join(''));
+  const fr = group('Frost', 'neutral/' + A_FROST_BASE[theme] + ' × opacity',
+    Object.entries(A_FROST).map(([k, a]) =>
+      tokenEl(k, withAlpha(pal.neutral[A_FROST_BASE[theme]], a),
+        'neutral/' + A_FROST_BASE[theme] + ' @ ' + a + '%')).join(''));
+  return panelShell(theme, pal, ov + fr);
+}
+
+function renderAtomicContrast(pal){
+  const rows = [];
+  ['light','dark'].forEach(theme => {
+    const bgOf = k => resolveAtomic(A_SEMANTIC.background[k][theme], pal).hex;
+    const fgOf = k => resolveAtomic(A_SEMANTIC.foreground[k][theme], pal).hex;
+    const pairs = [
+      ['foreground/primary',     'background/primary',  fgOf('primary'),     bgOf('primary')],
+      ['foreground/secondary',   'background/primary',  fgOf('secondary'),   bgOf('primary')],
+      ['foreground/tertiary',    'background/secondary', fgOf('tertiary'),   bgOf('secondary')],
+      ['foreground/quarternary', 'background/primary',  fgOf('quarternary'), bgOf('primary')],
+      ['foreground/disabled',    'background/disabled', fgOf('disabled'),    bgOf('disabled')],
+      ['foreground/inverse',     'background/inverse',  fgOf('inverse'),     bgOf('inverse')],
+    ];
+    Object.keys(A_STATUS_HUE).forEach(st => {
+      const hue = A_STATUS_HUE[st];
+      const fs = statusSteps(hue, theme, pal).foreground;
+      pairs.push([
+        'status/' + st + '/foreground (' + fs + ')', 'status/' + st + '/tint',
+        pal.saturated[hue][fs],
+        pal.saturated[hue][A_STATUS_ROLE.background.tint[theme]],
+      ]);
+    });
+    pairs.forEach(([fgName, bgName, fg, bg]) => {
+      rows.push('<div class="xrow" style="background:' + bg + ';color:' + fg + '">' +
+        '<span class="lead">' + theme + ' · Aa 가나다</span>' +
+        '<span class="meta">' + fgName + '<br>on ' + bgName + '</span>' +
+        ratioBadge(fg, bg) + '</div>');
+    });
+  });
+  return rows.join('');
+}
+
+function renderAtomic(){
+  const pal = atomicPalettes();
+  currentAtomic = pal;
+
+  $('atomic-src').innerHTML = [
+    stripBlock('A. Common Palette',
+      'neutral · step ' + (state.mode === 'primary'
+        ? 'primary tint ' + fmtAlpha(state.tint.strength) + '% @ 500' : '순수 그레이스케일'),
+      ATOMIC_STEPS.map(v => ({ label:v, hex:pal.neutral[v], note:'g' + stepToGrade(v) }))),
+    stripBlock('B. Opacity', 'neutral/' + 1000 + ' 기준 · overlay · disabled · layer 구분',
+      OPACITY_STEPS.map(a => ({ label:a + '%', hex:withAlpha(pal.neutral[1000], a) })), true),
+    paletteBlock('C. Muted Palette', 'chroma ' + state.chroma + '% · step 500 앵커', pal.muted),
+    paletteBlock('D. Saturated Palette', 'chroma 100% · step 500 앵커', pal.saturated),
+  ].join('');
+
+  $('a-semantic').innerHTML = renderAtomicSemantic('light', pal) + renderAtomicSemantic('dark', pal);
+  $('a-status').innerHTML   = renderAtomicStatus('light', pal)   + renderAtomicStatus('dark', pal);
+  $('a-overlay').innerHTML  = renderAtomicOverlay('light', pal)  + renderAtomicOverlay('dark', pal);
+  $('a-contrast').innerHTML = renderAtomicContrast(pal);
+  $('aout').textContent = exportAtomic(state.atab);
+}
+
+let currentAtomic = null;
+
+['atomic-src','a-semantic','a-status','a-overlay'].forEach(id => {
+  $(id).addEventListener('click', e => {
+    const b = e.target.closest('[data-hex]'); if(!b) return;
+    copy(b.dataset.hex, b.dataset.hex.toUpperCase() + ' 복사됨');
+  });
+});
+$('viewtabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  state.view = b.dataset.v; render();
+  window.scrollTo({ top:0 });
+});
+$('chroma').addEventListener('input', e => { state.chroma = Number(e.target.value); render(); });
+$('atabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  state.atab = b.dataset.v; render();
+});
+$('acopy').addEventListener('click', () => copy($('aout').textContent, state.atab.toUpperCase() + ' 복사됨'));
+
+/* ---------- atomic export ---------- */
+function atomicTokenTree(){
+  const pal = currentAtomic || atomicPalettes();
+  const out = { atomic:{ neutral:{}, opacity:{}, muted:{}, saturated:{} }, semantic:{}, status:{}, overlay:{}, frost:{} };
+  ATOMIC_STEPS.forEach(v => { out.atomic.neutral[v] = pal.neutral[v]; });
+  OPACITY_STEPS.forEach(a => { out.atomic.opacity[a] = Math.round(a / 100 * 1000) / 1000; });
+  HUES.forEach(h => {
+    out.atomic.muted[h.name] = pal.muted[h.name];
+    out.atomic.saturated[h.name] = pal.saturated[h.name];
+  });
+  ['light','dark'].forEach(theme => {
+    out.semantic[theme] = {};
+    ['background','foreground','border'].forEach(g => {
+      out.semantic[theme][g] = Object.fromEntries(Object.entries(A_SEMANTIC[g])
+        .map(([k, refs]) => [k, resolveAtomic(refs[theme], pal).hex]));
+    });
+    out.status[theme] = {};
+    Object.keys(A_STATUS_HUE).forEach(st => {
+      const hue = A_STATUS_HUE[st];
+      const steps = statusSteps(hue, theme, pal);
+      out.status[theme][st] = {
+        ...Object.fromEntries(Object.entries(A_STATUS_ROLE.background)
+          .map(([role, m]) => ['background' + cap(role), pal.saturated[hue][m[theme]]])),
+        foreground: pal.saturated[hue][steps.foreground],
+        border: pal.saturated[hue][steps.border],
+      };
+    });
+    out.overlay[theme] = Object.fromEntries(Object.entries(A_OVERLAY)
+      .map(([k, a]) => [k, withAlpha(pal.neutral[A_OVERLAY_BASE[theme]], a)]));
+    out.frost[theme] = Object.fromEntries(Object.entries(A_FROST)
+      .map(([k, a]) => [k, withAlpha(pal.neutral[A_FROST_BASE[theme]], a)]));
+  });
+  return out;
+}
+
+function atomicFlat(t, theme){
+  const flat = {};
+  ['background','foreground','border'].forEach(g =>
+    Object.entries(t.semantic[theme][g]).forEach(([k, v]) => { flat[g + '-' + kebab(k)] = v; }));
+  Object.entries(t.status[theme]).forEach(([st, roles]) =>
+    Object.entries(roles).forEach(([k, v]) => { flat['status-' + st + '-' + kebab(k)] = v; }));
+  Object.entries(t.overlay[theme]).forEach(([k, v]) => { flat['overlay-' + k] = v; });
+  Object.entries(t.frost[theme]).forEach(([k, v]) => { flat['frost-' + k] = v; });
+  return flat;
+}
+
+function exportAtomic(kind){
+  const t = atomicTokenTree();
+  if(kind === 'json'){
+    return JSON.stringify({
+      meta:{ generator:'Chroma Bench', taxonomy:'atomic', curve:state.curve,
+             chroma:state.chroma, tint:state.tint, mode:state.mode,
+             steps:ATOMIC_STEPS, opacity:OPACITY_STEPS },
+      ...t,
+    }, null, 2);
+  }
+  if(kind === 'figma'){
+    const col = v => ({ value:v, type:'color' });
+    const grp = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, col(v)]));
+    return JSON.stringify({
+      atomic:{
+        neutral:grp(t.atomic.neutral),
+        opacity:Object.fromEntries(Object.entries(t.atomic.opacity).map(([k, v]) => [k, { value:v, type:'opacity' }])),
+        muted:Object.fromEntries(Object.entries(t.atomic.muted).map(([h, r]) => [h, grp(r)])),
+        saturated:Object.fromEntries(Object.entries(t.atomic.saturated).map(([h, r]) => [h, grp(r)])),
+      },
+      semantic:Object.fromEntries(['light','dark'].map(th => [th, grp(atomicFlat(t, th))])),
+    }, null, 2);
+  }
+  if(kind === 'tw'){
+    const colors = { neutral:t.atomic.neutral };
+    HUES.forEach(h => { colors[h.name] = t.atomic.saturated[h.name]; });
+    HUES.forEach(h => { colors[h.name + '-muted'] = t.atomic.muted[h.name]; });
+    Object.entries(atomicFlat(t, 'light')).forEach(([k, v]) => { colors[k] = v; });
+    return '// tailwind.config.js — atomic taxonomy (light semantic; dark via CSS vars)\n' +
+      'module.exports = {\n  theme: {\n    extend: {\n      colors: ' +
+      JSON.stringify(colors, null, 8).replace(/\n/g, '\n      ') + '\n    },\n  },\n};\n';
+  }
+  /* css */
+  const lines = [];
+  lines.push('/* generated by Chroma Bench — atomic taxonomy, curve: ' + state.curve + ' */');
+  lines.push('');
+  lines.push('/* layer 0 — atomic */');
+  lines.push(':root {');
+  ATOMIC_STEPS.forEach(v => lines.push('  --n-' + v + ': ' + t.atomic.neutral[v] + ';'));
+  lines.push('');
+  OPACITY_STEPS.forEach(a => lines.push('  --opacity-' + a + ': ' + t.atomic.opacity[a] + ';'));
+  HUES.forEach(h => {
+    lines.push('');
+    HUE_STEPS.forEach(v => lines.push('  --' + h.name + '-' + v + ': ' + t.atomic.saturated[h.name][v] + ';'));
+    HUE_STEPS.forEach(v => lines.push('  --' + h.name + '-muted-' + v + ': ' + t.atomic.muted[h.name][v] + ';'));
+  });
+  lines.push('}');
+  lines.push('');
+  lines.push('/* layer 1 — semantic */');
+  lines.push(':root {');
+  Object.entries(atomicFlat(t, 'light')).forEach(([k, v]) => lines.push('  --' + k + ': ' + v + ';'));
+  lines.push('}');
+  lines.push('');
+  const dark = Object.entries(atomicFlat(t, 'dark')).map(([k, v]) => '    --' + k + ': ' + v + ';').join('\n');
+  lines.push('@media (prefers-color-scheme: dark) {\n  :root:not([data-theme="light"]) {\n' + dark + '\n  }\n}');
+  lines.push('');
+  lines.push(':root[data-theme="dark"] {\n' + dark.replace(/^ {4}/gm, '  ') + '\n}');
+  return lines.join('\n') + '\n';
+}
 
 /* ============================================================
    EXPORT

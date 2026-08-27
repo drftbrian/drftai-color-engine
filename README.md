@@ -66,6 +66,52 @@ alpha = strength × (1 − |grade − 50| / 50)
   - `SHEET` — 소스 시트 원본. 90–99 구간을 정점의 0.2배로 유지
   - `TENT` — 예외 없는 완전 선형 (98 → 0.4%, 95 → 1%)
 
+## ATOMIC SYSTEM 탭
+
+두 번째 taxonomy. **같은 커브 엔진을 다르게 샘플링**한 것이라 컬러 로직은 하나입니다.
+
+```
+step = 1000 − grade × 10
+step:    0   50  100  200  300  400  500  600  700  800  900  950 1000
+grade: 100   95   90   80   70   60   50   40   30   20   10    5    0
+```
+
+### Layer 0 — Atomic
+
+| | 내용 |
+|---|---|
+| **A. Common Palette** | neutral 13스텝. Surface Mode가 `PRIMARY TINT`면 틴트 슬라이더가 그대로 적용됩니다 |
+| **B. Opacity** | `0 4 8 12 16 24 32 40 48 56 64 72` (%) |
+| **C. Muted Palette** | 11 hue × 11 step. 채도는 CHROMA 슬라이더로 조절 |
+| **D. Saturated Palette** | 같은 hue 앵커, 채도 100% |
+
+hue는 step 500을 앵커로 정의하고(`brown red orange yellow citron sprout green teal blue purple pink`),
+거기서 커브를 따라 양쪽으로 램프됩니다. 즉 램프 로직은 DRFT 탭의 primary 램프와 동일하고
+피벗만 grade 40 → 50으로 바뀝니다.
+
+### Layer 1 — Semantic / Status / Overlay · Frost
+
+모든 토큰이 자기가 참조하는 atomic 값을 함께 표시합니다 (`← neutral/200`).
+
+- **Semantic** — Background(9) · Foreground(6) · Border(6), light/dark 각각
+- **Status** — Error·Warning·Success·Info × Background(Base/Active/Tint/Tint Active) + Foreground + Border
+- **Overlay** — `neutral/1000` × Opacity 스케일 (subtle 8 · light 16 · medium 32 · default 48 · strong 64)
+- **Frost** — light는 `neutral/0`, dark는 `neutral/1000` × (light 48 · default 64 · strong 72)
+- Elevation은 제외
+
+### Status foreground / border는 step이 고정이 아닙니다
+
+같은 step이라도 hue마다 대비가 크게 다릅니다. yellow/600은 자기 tint 위에서 2.58:1로
+AA에 한참 못 미치는 반면 blue/600은 6.65:1입니다. 그래서 **자기 tint 대비 기준을 넘는 첫
+step을 자동으로 고릅니다** (foreground 4.5:1, border 3:1).
+
+| light | error | warning | success | info |
+|---|---|---|---|---|
+| foreground | 600 (5.83) | **800** (7.91) | **700** (6.16) | 600 (6.65) |
+| border | 500 | 700 | 600 | 500 |
+
+dark는 네 hue 모두 400에서 통과합니다 (최소 4.82:1).
+
 ## 그 외
 
 - 라이트/다크 × default/primary-tint 서피스 시스템
