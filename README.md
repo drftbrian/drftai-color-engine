@@ -82,19 +82,22 @@ grade: 100   95   90   80   70   60   50   40   30   20   10    5    0
 |---|---|
 | **A. Common Palette** | neutral 13스텝. Surface Mode가 `PRIMARY TINT`면 틴트 슬라이더가 그대로 적용됩니다 |
 | **B. Opacity** | `0 4 8 12 16 24 32 40 48 56 64 72` (%) |
-| **C. Muted Palette** | 11 hue × 11 step. 채도는 CHROMA 슬라이더로 조절 |
-| **D. Saturated Palette** | 같은 hue 앵커, 채도 100% |
+| **C. Muted Palette** | 11 hue × 11 step. 채도는 CHROMA 슬라이더로 조절 (현재 바인딩된 토큰 없음 — 확장용) |
+| **D. Saturated Palette** | 같은 hue 앵커, 채도 100%. status 토큰의 원본 |
+| **E. Primary Palette** | 입력한 브랜드 색의 램프. 레퍼런스에 없는 우리 시스템만의 레이어 |
 
 hue는 step 500을 앵커로 정의하고(`brown red orange yellow citron sprout green teal blue purple pink`),
 거기서 커브를 따라 양쪽으로 램프됩니다. 즉 램프 로직은 DRFT 탭의 primary 램프와 동일하고
 피벗만 grade 40 → 50으로 바뀝니다.
 
-### Layer 1 — Semantic / Status / Overlay · Frost
+`E. Primary Palette`도 step 500 앵커라 `primary/500`이 곧 입력색입니다. DRFT 탭에서는 같은 색이
+grade 40에 앉으므로 스와치는 동일하고 라벨만 다릅니다.
 
-모든 토큰이 자기가 참조하는 atomic 값을 함께 표시합니다 (`← neutral/200`).
+### Layer 1 — Semantic / Status / Brand / Overlay · Frost
 
 - **Semantic** — Background(9) · Foreground(6) · Border(6), light/dark 각각
 - **Status** — Error·Warning·Success·Info × Background(Base/Active/Tint/Tint Active) + Foreground + Border
+- **Brand** — status와 완전히 같은 문법을 primary 팔레트에 적용
 - **Overlay** — `neutral/1000` × Opacity 스케일 (subtle 8 · light 16 · medium 32 · default 48 · strong 64)
 - **Frost** — light는 `neutral/0`, dark는 `neutral/1000` × (light 48 · default 64 · strong 72)
 - Elevation은 제외
@@ -111,6 +114,17 @@ step을 자동으로 고릅니다** (foreground 4.5:1, border 3:1).
 | border | 500 | 700 | 600 | 500 |
 
 dark는 네 hue 모두 400에서 통과합니다 (최소 4.82:1).
+
+### 양방향 링크
+
+DRFT 탭의 Color Source와 동일한 개념입니다. layer 0의 각 스톱 칸에 그 값을 쓰는 토큰이
+`L·fg/secondary` / `D·bg/tertiaryActive` 형태로 찍힙니다(L = light, D = dark, 현재 테마는 진하게).
+
+- 토큰 카드의 `← neutral/700` 라벨 클릭 → layer 0으로 스크롤 + 해당 칸 강조
+- layer 0 칸 클릭 → 그 값을 쓰는 토큰 카드 전부 강조
+
+바인딩은 `atomicBindings()`가 매핑 테이블을 한 번 순회해 만들고, 양방향 표시·JSON export의
+`bindings` 맵이 모두 이 인덱스 하나를 씁니다.
 
 ## 그 외
 
