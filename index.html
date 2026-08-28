@@ -1,8 +1,8 @@
 <meta charset="utf-8">
-<title>Chroma Bench</title>
+<title>DRFT_1 Color</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
 <style>
   :root{
     --bg:#fbf8fd; --bg-bright:#ffffff; --bg-dim:#dbd9dd;
@@ -13,7 +13,9 @@
     --primary:#276ef1; --primary2:#184495; --on-primary:#ffffff;
     --primary-variant:#d4e2fc; --on-primary-variant:#0a1c3c;
     --error:#ea4335; --warning:#f7c137; --success:#3ddc84;
-    --sans:'Archivo',system-ui,-apple-system,sans-serif;
+    --sans:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+    --display:'Space Grotesk',system-ui,sans-serif;
+    --kr:'Pretendard','Apple SD Gothic Neo',system-ui,sans-serif;
     --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
     --rail:336px;
   }
@@ -30,55 +32,161 @@
   button,input,select{font:inherit;color:inherit}
   :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 
-  .shell{display:grid;grid-template-columns:var(--rail) minmax(0,1fr);min-height:100vh}
+  /* ============ product shell — Figma 2470:2928 ============
+     Every colour below comes from the engine's own dark output; the Figma
+     variables (Base Color/*, Primary/*) are the same tokens by name.        */
+  .app{height:100vh;display:flex;flex-direction:column;background:var(--bg-dim);overflow:hidden}
 
-  /* ---------- control rail ---------- */
-  .rail{
-    position:sticky;top:0;height:100vh;overflow-y:auto;
-    background:var(--s-low);border-right:1px solid var(--outline-variant);
-    padding:26px 22px 40px;display:flex;flex-direction:column;gap:26px;
-  }
-  .brand{display:flex;flex-direction:column;gap:4px}
-  .brand h1{font-size:19px;font-weight:700;letter-spacing:-.02em;margin:0}
-  .brand p{margin:0;font-family:var(--mono);font-size:11px;color:var(--text2);letter-spacing:.04em}
-  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--primary);display:inline-block;margin-right:7px;vertical-align:1px}
+  .topbar{height:45px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:8px 16px;gap:16px}
+  .brand{display:flex;align-items:center;gap:8px}
+  .wordmark{font-family:var(--display);font-weight:500;font-size:24px;line-height:29px;
+    color:var(--text);letter-spacing:-.01em}
+  .beta{background:var(--primary-variant);color:var(--primary);border-radius:8px;padding:2px 6px;
+    font-family:var(--mono);font-weight:500;font-size:10px;line-height:18px;letter-spacing:.04em}
+  .topbar .spacer{width:220px}
 
-  .field{display:flex;flex-direction:column;gap:9px}
-  .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text2)}
+  .panels{flex:1;min-height:0;display:grid;grid-template-columns:434px minmax(0,1fr);
+    gap:8px;padding:0 16px 16px}
+  .panel{background:var(--bg);border-radius:16px;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+  .panel-left{overflow-y:auto;padding-bottom:24px}
 
-  .hexrow{display:flex;gap:8px;align-items:stretch}
-  .swatch-input{position:relative;width:46px;height:46px;flex:none;border-radius:3px;overflow:hidden;border:1px solid var(--outline)}
-  .swatch-input input{position:absolute;inset:-8px;width:calc(100% + 16px);height:calc(100% + 16px);border:0;padding:0;background:none;cursor:pointer}
-  .hexfield{flex:1;display:flex;align-items:center;background:var(--s-lowest);border:1px solid var(--outline-variant);border-radius:3px;padding:0 10px}
-  .hexfield input{width:100%;border:0;background:none;font-family:var(--mono);font-size:14px;letter-spacing:.06em;text-transform:uppercase;padding:12px 0}
+  /* Figma "App Content Header" */
+  .sec-head{height:40px;flex:none;display:flex;align-items:center;gap:10px;padding:8px 16px}
+  .sec-head h1,.sec-head h2{margin:0;font-family:var(--mono);font-weight:500;font-size:16px;
+    line-height:16px;color:var(--text)}
+  .sec-body{padding:0 16px 8px;display:flex;flex-direction:column;gap:8px}
+  .sec-note{margin:0;font-family:var(--mono);font-size:11px;line-height:1.55;color:var(--text2)}
+
+  /* Figma segmented "button" — h40 r12, active fills with primary */
+  .seg{display:flex;gap:4px;height:40px;padding:4px;border:1px solid var(--s);
+    border-radius:12px;background:var(--bg)}
+  .seg button{flex:1;min-width:0;padding:0 8px;border:1px solid transparent;background:none;
+    border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-weight:700;font-size:14px;line-height:18px;color:var(--text);
+    white-space:nowrap;overflow:hidden;transition:.15s}
+  .seg button:hover:not([aria-pressed="true"]){background:var(--s)}
+  .seg button[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+
+  /* Figma chip row — h32 r8, outline-variant border, no container */
+  .chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .chips.two{grid-template-columns:repeat(2,1fr)}
+  .chips button{height:32px;padding:0 6px;border:1px solid var(--outline-variant);background:none;
+    border-radius:8px;cursor:pointer;font-family:var(--mono);font-weight:700;font-size:14px;
+    line-height:18px;color:var(--text);white-space:nowrap;overflow:hidden;transition:.15s}
+  .chips button:hover:not([aria-pressed="true"]){border-color:var(--primary);color:var(--primary)}
+  .chips button[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+
+  /* Color Input */
+  .colorrow{display:flex;align-items:center;gap:24px}
+  .colorpick{display:flex;align-items:center;gap:12px;flex:none}
+  .swatch-input{position:relative;width:40px;height:40px;flex:none;border-radius:8px;overflow:hidden}
+  .swatch-input input{position:absolute;inset:-8px;width:calc(100% + 16px);height:calc(100% + 16px);
+    border:0;padding:0;background:none;cursor:pointer}
+  .colorlabels{display:flex;flex-direction:column;gap:2px;width:94px}
+  .colorlabels b{font-family:var(--mono);font-weight:500;font-size:12px;line-height:12px;color:var(--text)}
+  .colorlabels span{font-family:var(--mono);font-size:12px;line-height:16px;letter-spacing:-.5px;color:var(--text2)}
+  .hexfield{flex:1;min-width:0;display:flex;align-items:center;border:1px solid var(--outline);
+    border-radius:8px;padding:8px}
+  .hexfield input{width:100%;border:0;background:none;font-family:var(--mono);font-size:12px;
+    line-height:16px;letter-spacing:-.5px;text-transform:uppercase;color:var(--text)}
   .hexfield input:focus{outline:none}
   .hexfield.bad{border-color:var(--error)}
-
-  .seg{display:flex;background:var(--s-lowest);border:1px solid var(--outline-variant);border-radius:3px;padding:3px;gap:3px}
-  .seg button{flex:1;border:0;background:none;padding:8px 6px;border-radius:2px;cursor:pointer;
-    font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--text2);transition:.15s}
-  .seg button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary)}
-  .seg button:hover:not([aria-pressed="true"]){color:var(--text)}
-
-  .ghost{border:1px solid var(--outline);background:none;border-radius:3px;padding:10px;cursor:pointer;
-    font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);transition:.15s;width:100%}
+  .presets{display:flex;gap:13px;overflow-x:auto;padding-bottom:2px}
+  .presets button{width:46px;height:46px;flex:none;border-radius:8px;border:1px solid var(--outline-variant);
+    cursor:pointer;padding:0;transition:transform .12s}
+  .presets button:hover{transform:scale(1.06)}
+  .ghost{border:1px solid var(--outline-variant);background:none;border-radius:8px;height:32px;
+    cursor:pointer;font-family:var(--mono);font-weight:700;font-size:13px;color:var(--text2);
+    transition:.15s;padding:0 10px}
   .ghost:hover{border-color:var(--primary);color:var(--primary)}
 
-  .presets{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
-  .presets button{aspect-ratio:1;border-radius:2px;border:1px solid var(--outline-variant);cursor:pointer;padding:0;transition:transform .12s}
-  .presets button:hover{transform:scale(1.14)}
+  /* slider row — track 4px, 24px handle, 48px numeric field */
+  .sliderrow{display:flex;gap:7px;align-items:flex-start}
+  .sliderrow .track{flex:1;min-width:0;height:24px;display:flex;align-items:center}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;background:none;margin:0;
+    height:24px;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:999px;background:var(--s-highest)}
+  input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:var(--s-highest)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:24px;height:24px;
+    border-radius:50%;background:var(--s-lowest);border:1px solid var(--outline-variant);margin-top:-10px;
+    box-shadow:0 1px 3px rgba(0,0,0,.4)}
+  input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--s-lowest);
+    border:1px solid var(--outline-variant);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+  .numfield{width:48px;flex:none;border:1px solid var(--outline);border-radius:8px;padding:4px;display:flex}
+  .numfield input{width:100%;border:0;background:none;font-family:var(--mono);font-size:12px;
+    line-height:16px;letter-spacing:-.5px;color:var(--text);text-align:center}
+  .numfield input:focus{outline:none}
+  .slider-label{font-family:var(--mono);font-weight:500;font-size:14px;line-height:14px;color:var(--on-surface)}
 
-  .status-grid{display:flex;flex-direction:column;gap:10px}
-  .status-row{display:flex;align-items:center;gap:9px}
-  .status-row .swatch-input{width:32px;height:32px}
-  .status-row span{font-family:var(--mono);font-size:11px;color:var(--text2);letter-spacing:.06em;flex:1}
-  .status-row code{font-family:var(--mono);font-size:11px;color:var(--text)}
+  /* right panel tabs */
+  .tabs-head{gap:10px}
+  .tabs-head button{border:0;background:none;padding:0;cursor:pointer;font-family:var(--mono);
+    font-weight:500;font-size:16px;line-height:16px;color:var(--text);transition:.15s}
+  .tabs-head button[aria-pressed="false"]{opacity:.4}
+  .tabs-head button:hover{opacity:1}
+  .pane{flex:1;min-height:0;overflow-y:auto}
 
-  .note{font-size:12px;line-height:1.6;color:var(--text2);border-top:1px solid var(--outline-variant);padding-top:16px;margin-top:auto}
-  .note b{color:var(--text);font-weight:600}
+  /* phone preview */
+  .stage{height:100%;display:flex;align-items:center;justify-content:center;padding:24px}
+  .phone{position:relative;width:362.294px;height:738.26px;flex:none;
+    filter:drop-shadow(0 15.855px 23.783px rgba(0,0,0,.2))}
+  .phone .screen{position:absolute;top:2.06%;bottom:2.06%;left:4.82%;right:5.03%;
+    border-radius:42.922px;overflow:hidden;background:var(--bg)}
+  .phone .bezel{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .phone .island{position:absolute;top:2.98%;left:36.9%;right:36.69%;height:28.862px;pointer-events:none}
+  @media (max-width:1180px){ .phone{transform:scale(.82);transform-origin:center} }
+
+  /* ---------- the previewed app ---------- */
+  .pv{height:100%;display:flex;flex-direction:column;font-family:var(--kr);font-size:13px;overflow:hidden}
+  .pv-ic{width:20px;height:20px;flex:none}
+  .pv-status{height:52px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;
+    padding:0 22px 6px;font-family:var(--kr);font-size:13px;font-weight:600}
+  .pv-status span{display:flex;align-items:center;gap:5px}
+  .pv-status i{display:block;background:currentColor;opacity:.9}
+  .pv-bars{width:15px;height:10px;clip-path:polygon(0 70%,18% 70%,18% 100%,0 100%,0 70%,27% 45%,45% 45%,45% 100%,27% 100%,27% 45%,55% 22%,73% 22%,73% 100%,55% 100%,55% 22%,82% 0,100% 0,100% 100%,82% 100%)}
+  .pv-wifi{width:14px;height:10px;clip-path:polygon(50% 100%,0 32%,12% 20%,50% 58%,88% 20%,100% 32%)}
+  .pv-bat{width:22px;height:11px;border-radius:3px;background:none!important;
+    box-shadow:inset 0 0 0 1px currentColor;position:relative}
+  .pv-bat::after{content:"";position:absolute;inset:2px;border-radius:1px;background:currentColor}
+  .pv-nav{flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 20px 10px}
+  .pv-nav h3{margin:0;font-size:20px;font-weight:700}
+  .pv-navic{display:flex;gap:14px}
+  .pv-row{flex:none;display:flex;align-items:center;gap:12px;padding:8px 20px 14px}
+  .pv-avatar{width:44px;height:44px;border-radius:50%;flex:none}
+  .pv-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .pv-id b{font-size:15px}
+  .pv-id span{font-size:12px}
+  .pv-sec{flex:none;display:flex;align-items:center;justify-content:space-between;padding:2px 20px 10px}
+  .pv-sec b{font-size:15px}
+  .pv-add{width:26px;height:26px;border-radius:8px;border:0;display:flex;align-items:center;
+    justify-content:center;cursor:default}
+  .pv-add .pv-ic{width:16px;height:16px}
+  .pv-cards{flex:none;display:flex;gap:10px;padding:0 20px 14px;overflow:hidden}
+  .pv-pet{flex:0 0 258px;border-radius:14px;padding:14px;display:flex;gap:12px;min-width:0}
+  .pv-pet-l{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .pv-photo{width:76px;height:76px;border-radius:50%;border:2px solid;margin-bottom:2px;
+    background:color-mix(in srgb, currentColor 18%, transparent)}
+  .pv-pet-l b{font-size:16px}
+  .pv-pet-l span{font-size:10px;opacity:.85}
+  .pv-pet-r{flex:1;min-width:0;display:flex;flex-direction:column}
+  .pv-stat{padding:5px 0;display:flex;flex-direction:column;gap:1px}
+  .pv-stat span{font-size:10px;opacity:.85}
+  .pv-stat b{font-size:14px}
+  .pv-quick{flex:none;display:flex;padding:4px 16px 14px}
+  .pv-quick div{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .pv-quick b{font-size:11px;font-weight:600}
+  .pv-quick em{font-style:normal;font-size:11px}
+  .pv-div{height:1px;margin:0 20px}
+  .pv-shop{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding:14px 20px}
+  .pv-shop span{font-size:11px}
+  .pv-link{font-size:14px}
+  .pv-tabbar{flex:none;display:flex;padding:8px 6px 2px}
+  .pv-tabbar div{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px}
+  .pv-home{width:120px;height:4px;border-radius:999px;margin:6px auto 8px;opacity:.9;flex:none}
 
   /* ---------- canvas ---------- */
-  .canvas{padding:34px 40px 90px;display:flex;flex-direction:column;gap:40px;min-width:0}
+  .canvas{padding:8px 16px 40px;display:flex;flex-direction:column;gap:32px;min-width:0}
 
   .step{display:flex;flex-direction:column;gap:16px}
   .step-head{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--outline-variant);padding-bottom:10px}
@@ -255,8 +363,8 @@
   /* lives in the rail, under the Gradation Curve chips — one column, no box of
      its own (the rail is already a surface) */
   .curve-panel{display:flex;flex-direction:column;gap:12px}
-  .curve-stage{display:flex;flex-direction:column;gap:4px;max-width:340px}
-  #curve{width:100%;aspect-ratio:1;display:block;border-radius:4px;background:var(--s-lowest);
+  .curve-stage{display:flex;flex-direction:column;gap:4px}
+  #curve{width:100%;height:221px;display:block;border-radius:8px;background:var(--s-highest);
     touch-action:none;cursor:crosshair}
   .mini{border:1px solid var(--outline-variant);background:var(--s-lowest);border-radius:3px;
     padding:4px 9px;cursor:pointer;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
@@ -283,146 +391,172 @@
 
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
   @media (max-width:900px){
-    .shell{grid-template-columns:1fr}
-    .rail{position:static;height:auto;border-right:0;border-bottom:1px solid var(--outline-variant)}
-    .canvas{padding:26px 18px 70px}
+    .app{height:auto;min-height:100vh;overflow:visible}
+    .panels{grid-template-columns:1fr}
+    .canvas{padding:8px 12px 40px}
   }
 </style>
 
-<div class="shell">
-  <aside class="rail">
-    <div class="brand">
-      <h1><span class="dot"></span>Chroma Bench</h1>
-      <p>DRFT COLOR ENGINE · STANDALONE</p>
-    </div>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="wordmark">DRFT_1</span><span class="beta">BETA</span></div>
+    <div class="spacer"></div>
+  </header>
 
-    <div class="field">
-      <span class="lbl">Primary — 기준색 (40%)</span>
-      <div class="hexrow">
-        <label class="swatch-input" style="background:var(--primary)"><input type="color" id="pick" value="#276EF1" aria-label="Primary color"></label>
-        <label class="hexfield" id="hexwrap"><input id="hex" value="#276EF1" spellcheck="false" aria-label="Primary hex"></label>
+  <div class="panels">
+  <aside class="panel panel-left">
+    <div class="sec-head"><h1>Colors</h1></div>
+
+    <div class="sec-head"><h2>System</h2></div>
+    <div class="sec-body">
+      <div class="seg" id="viewtabs">
+        <button data-v="drft" aria-pressed="true">DRFT Engine</button>
+        <button data-v="atomic" aria-pressed="false">Atomic System</button>
       </div>
     </div>
 
-    <div class="field">
-      <span class="lbl">Presets</span>
-      <div class="presets" id="presets"></div>
-      <button class="ghost" id="rand">Randomize</button>
-    </div>
-
-    <div class="field">
-      <span class="lbl">Surface Mode</span>
-      <div class="seg" id="mode">
-        <button data-v="default" aria-pressed="true">DEFAULT</button>
-        <button data-v="primary" aria-pressed="false">PRIMARY TINT</button>
-      </div>
-    </div>
-
-    <div class="field">
-      <span class="lbl">Primary Tint</span>
-      <div class="slider-head">
-        <span class="chip-desc">grade 50 강도</span>
-        <b id="tint-val">10.0%</b>
-      </div>
-      <input type="range" id="tint" min="0" max="60" step="0.5" value="10"
-        aria-label="Primary tint strength at grade 50 (percent)">
-      <div class="slider-scale"><span>0%</span><span>30%</span><span>60%</span></div>
-      <div class="seg" id="tint-shape">
-        <button data-v="sheet" aria-pressed="true">SHEET</button>
-        <button data-v="tent" aria-pressed="false">TENT</button>
-      </div>
-      <p class="chip-desc" id="tint-desc"></p>
-    </div>
-
-    <div class="field">
-      <span class="lbl">Theme</span>
+    <div class="sec-head"><h2>Theme</h2></div>
+    <div class="sec-body">
       <div class="seg" id="theme">
-        <button data-v="light" aria-pressed="true">LIGHT</button>
-        <button data-v="dark" aria-pressed="false">DARK</button>
+        <button data-v="light" aria-pressed="true">Light</button>
+        <button data-v="dark" aria-pressed="false">Dark</button>
       </div>
     </div>
 
-    <div class="field">
-      <div class="slider-head">
-        <span class="lbl">Gradation Curve</span>
-        <button class="mini" id="curve-toggle" aria-expanded="false" aria-controls="curve-expand">EXPAND</button>
+    <div class="sec-head"><h2>Color Input</h2></div>
+    <div class="sec-body">
+      <div class="colorrow">
+        <div class="colorpick">
+          <label class="swatch-input" style="background:var(--primary)">
+            <input type="color" id="pick" value="#276EF1" aria-label="Primary color"></label>
+          <div class="colorlabels"><b>Primary Color</b><span>Brand Color</span></div>
+        </div>
+        <label class="hexfield" id="hexwrap">
+          <input id="hex" value="#276EF1" spellcheck="false" aria-label="Primary hex"></label>
       </div>
+      <div class="presets" id="presets"></div>
+      <button class="ghost" id="rand">RANDOMIZE</button>
+    </div>
+
+    <div class="sec-head"><h2>Surface Mode</h2></div>
+    <div class="sec-body">
+      <div class="seg" id="mode">
+        <button data-v="default" aria-pressed="true">Default</button>
+        <button data-v="primary" aria-pressed="false">Primary Tint</button>
+      </div>
+      <span class="slider-label">Primary Tint</span>
+      <div class="sliderrow">
+        <div class="track">
+          <input type="range" id="tint" min="0" max="60" step="0.5" value="10"
+            aria-label="Primary tint strength at grade 50 (percent)"></div>
+        <label class="numfield"><input id="tint-val" value="10.0%" aria-label="Tint strength"></label>
+      </div>
+      <div class="seg" id="tint-shape">
+        <button data-v="sheet" aria-pressed="true">Off-white</button>
+        <button data-v="tent" aria-pressed="false">Pure white</button>
+      </div>
+      <p class="sec-note" id="tint-desc"></p>
+      <p class="sec-note">두 모드는 grade 90 아래에서 동일합니다. 차이는 밝은 면 3개(background ·
+        surfaceLow · surface)뿐이고, 다크 모드는 영향 없습니다.</p>
+    </div>
+
+    <div class="sec-head"><h2>Gradation Curve</h2></div>
+    <div class="sec-body">
       <div class="chips" id="curve-pick"></div>
-      <p class="chip-desc" id="curve-desc"></p>
-      <div id="curve-expand" hidden>
-      <div class="curve-panel">
-        <div class="curve-stage">
+      <p class="sec-note" id="curve-desc"></p>
+      <div id="curve-expand">
+        <div class="curve-panel">
+          <div class="curve-stage">
             <canvas id="curve" tabindex="0" role="application"
               aria-label="그라데이션 커브 편집기. 방향키로 선택한 포인트를 이동하고 Delete로 삭제합니다."></canvas>
             <div class="slider-scale" id="curve-xscale" hidden></div>
           </div>
-        <div class="curve-side">
-          <div class="tabs" id="chan">
-            <button data-v="neutral" aria-pressed="true" title="gray ramp — neutral 램프">NEUTRAL</button>
-            <button data-v="color" aria-pressed="false" title="hue ramps — primary / status 램프">COLOR</button>
+          <div class="curve-side">
+            <div class="chips two" id="chan">
+              <button data-v="neutral" aria-pressed="true" title="gray ramp — neutral 램프">Neutral</button>
+              <button data-v="color" aria-pressed="false" title="hue ramps — primary / status 램프">Color</button>
+            </div>
+            <p class="curve-formula" id="curve-formula"></p>
+            <div class="curve-read" id="curve-read"></div>
+            <div class="curve-actions">
+              <button class="ghost" id="curve-reset">RESET TO SOURCE</button>
+              <button class="ghost" id="curve-linear">LINEAR</button>
+            </div>
+            <p class="curve-help">그래프 위에서 <b>드래그</b>하면 포인트가 움직이고, 프리셋 상태에서
+              드래그하면 그 커브를 그대로 이어받아 CUSTOM으로 전환됩니다. 빈 곳 클릭 = 포인트 추가,
+              더블클릭 = 삭제, 방향키 = 미세조정(Shift ×5). 양 끝점은 x가 고정입니다.</p>
           </div>
-          <p class="curve-formula" id="curve-formula"></p>
-          <div class="curve-read" id="curve-read"></div>
-          <div class="curve-actions">
-            <button class="ghost" id="curve-reset">RESET TO SOURCE</button>
-            <button class="ghost" id="curve-linear">LINEAR</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="field-statuspal" hidden>
+      <div class="sec-head"><h2>Status Palette</h2></div>
+      <div class="sec-body">
+        <div class="seg" id="statuspal">
+          <button data-v="saturated" aria-pressed="true">Saturated</button>
+          <button data-v="muted" aria-pressed="false">Muted</button>
+        </div>
+        <p class="sec-note" id="statuspal-desc"></p>
+      </div>
+    </div>
+
+    <div id="field-chroma" hidden>
+      <div class="sec-head"><h2>Muted Chroma</h2></div>
+      <div class="sec-body">
+        <div class="sliderrow">
+          <div class="track">
+            <input type="range" id="chroma" min="0" max="100" step="1" value="42"
+              aria-label="Muted palette chroma, percent of the saturated palette"></div>
+          <label class="numfield"><input id="chroma-val" value="42%" aria-label="Muted chroma"></label>
+        </div>
+      </div>
+    </div>
+
+    <div id="field-status">
+      <div class="sec-head"><h2>Status Colors</h2></div>
+      <div class="sec-body">
+        <div class="status-grid">
+          <div class="status-row">
+            <label class="swatch-input" id="sw-error"><input type="color" id="c-error" value="#EA4335" aria-label="Error color"></label>
+            <span>error</span><code id="t-error">#EA4335</code>
           </div>
-          <p class="curve-help">그래프 위에서 <b>드래그</b>하면 포인트가 움직이고, 프리셋 상태에서 드래그하면
-            그 커브를 그대로 이어받아 CUSTOM으로 전환됩니다. 빈 곳 클릭 = 포인트 추가, 더블클릭 = 삭제,
-            방향키 = 미세조정(Shift ×5). 양 끝점은 x가 고정입니다.</p>
-        </div>
-      </div>
-      </div>
-    </div>
-
-    <div class="field" id="field-statuspal" hidden>
-      <span class="lbl">Status Palette</span>
-      <div class="seg" id="statuspal">
-        <button data-v="saturated" aria-pressed="true">SATURATED</button>
-        <button data-v="muted" aria-pressed="false">MUTED</button>
-      </div>
-      <p class="chip-desc" id="statuspal-desc"></p>
-    </div>
-
-    <div class="field" id="field-chroma" hidden>
-      <span class="lbl">Muted Chroma</span>
-      <div class="slider-head">
-        <span class="chip-desc">saturated 대비 채도</span>
-        <b id="chroma-val">42%</b>
-      </div>
-      <input type="range" id="chroma" min="0" max="100" step="1" value="42"
-        aria-label="Muted palette chroma, percent of the saturated palette">
-      <div class="slider-scale"><span>0%</span><span>50%</span><span>100%</span></div>
-    </div>
-
-    <div class="field" id="field-status">
-      <span class="lbl">Status Colors</span>
-      <div class="status-grid">
-        <div class="status-row">
-          <label class="swatch-input" id="sw-error"><input type="color" id="c-error" value="#EA4335" aria-label="Error color"></label>
-          <span>error</span><code id="t-error">#EA4335</code>
-        </div>
-        <div class="status-row">
-          <label class="swatch-input" id="sw-warning"><input type="color" id="c-warning" value="#F7C137" aria-label="Warning color"></label>
-          <span>warning</span><code id="t-warning">#F7C137</code>
-        </div>
-        <div class="status-row">
-          <label class="swatch-input" id="sw-success"><input type="color" id="c-success" value="#3DDC84" aria-label="Success color"></label>
-          <span>success</span><code id="t-success">#3DDC84</code>
+          <div class="status-row">
+            <label class="swatch-input" id="sw-warning"><input type="color" id="c-warning" value="#F7C137" aria-label="Warning color"></label>
+            <span>warning</span><code id="t-warning">#F7C137</code>
+          </div>
+          <div class="status-row">
+            <label class="swatch-input" id="sw-success"><input type="color" id="c-success" value="#3DDC84" aria-label="Success color"></label>
+            <span>success</span><code id="t-success">#3DDC84</code>
+          </div>
         </div>
       </div>
     </div>
-
-    <p class="note">모든 semantic 토큰은 맨 아래 <b>Color Source</b> 13스톱에서 파생됩니다.
-      스와치를 클릭하면 HEX가 복사되고, 링크에는 현재 팔레트가 <b>#해시</b>로 저장돼 그대로 공유됩니다.</p>
   </aside>
 
-  <main class="canvas">
-    <nav class="viewtabs" id="viewtabs" aria-label="Color system">
-      <button data-v="drft" aria-pressed="true">DRFT ENGINE<em>13 grades · surface / status</em></button>
-      <button data-v="atomic" aria-pressed="false">ATOMIC SYSTEM<em>0–1000 steps · background / foreground / border</em></button>
-    </nav>
+  <main class="panel panel-right">
+    <div class="sec-head tabs-head" id="ptabs">
+      <button data-v="preview" aria-pressed="true">UI Preview</button>
+      <button data-v="tokens" aria-pressed="false">Tokens</button>
+    </div>
 
+    <div class="pane" id="pane-preview">
+      <div class="stage">
+        <div class="phone">
+          <div class="screen" id="pv-screen"></div>
+          <svg class="bezel" viewBox="0 0 362.294 738.26" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" aria-hidden="true">
+            <path fill-rule="evenodd" clip-rule="evenodd" fill="#1E1E1F" d="M8.57013 31.5179C2.27858 43.8657 2.27858 60.03 2.27858 92.3585V129.879H1.51905C0.680104 129.879 0 130.559 0 131.398V154.944C0 155.782 0.680104 156.463 1.51905 156.463H2.27858V178.489H1.51905C0.680104 178.489 0 179.169 0 180.008V228.618C0 229.457 0.680104 230.137 1.51905 230.137H2.27858V244.568H1.51905C0.680104 244.568 0 245.248 0 246.087V294.697C0 295.535 0.680104 296.216 1.51905 296.216H2.27858V645.902C2.27858 678.23 2.27858 694.395 8.57013 706.743C14.1043 717.604 22.935 726.435 33.7965 731.969C46.1443 738.26 62.3086 738.26 94.6371 738.26H266.898C299.226 738.26 315.391 738.26 327.738 731.969C338.6 726.435 347.431 717.604 352.965 706.743C359.256 694.395 359.256 678.23 359.256 645.902V294.697H360.775C361.614 294.697 362.294 294.016 362.294 293.177V215.706C362.294 214.867 361.614 214.187 360.775 214.187H359.256V92.3585C359.256 60.03 359.256 43.8657 352.965 31.5179C347.431 20.6564 338.6 11.8257 327.738 6.29155C315.391 0 299.226 0 266.898 0H94.6371C62.3086 0 46.1443 0 33.7965 6.29155C22.935 11.8257 14.1043 20.6564 8.57013 31.5179ZM22.105 38.4142C17.4691 47.5127 17.4691 59.4232 17.4691 83.2441V655.016C17.4691 678.837 17.4691 690.748 22.105 699.846C26.1828 707.849 32.6896 714.356 40.6928 718.434C49.7913 723.07 61.7018 723.07 85.5228 723.07H276.012C299.833 723.07 311.744 723.07 320.842 718.434C328.845 714.356 335.352 707.849 339.43 699.846C344.066 690.748 344.066 678.837 344.066 655.016V83.2442C344.066 59.4232 344.066 47.5127 339.43 38.4142C335.352 30.4111 328.845 23.9043 320.842 19.8264C311.744 15.1905 299.833 15.1905 276.012 15.1905H85.5228C61.7018 15.1905 49.7913 15.1905 40.6928 19.8264C32.6896 23.9043 26.1828 30.4111 22.105 38.4142Z"/>
+          </svg>
+          <svg class="island" viewBox="0 0 95.7006 28.862" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" aria-hidden="true">
+            <path fill="#1E1E1F" d="M0.000199302 14.431C0.000199302 6.46099 6.46119 0 14.4312 0H81.2696C89.2396 0 95.7006 6.46099 95.7006 14.431C95.7006 22.401 89.2396 28.862 81.2696 28.862H14.4312C6.46119 28.862 0.000199302 22.401 0.000199302 14.431Z"/>
+            <circle cx="81.2698" cy="14.431" r="4.55716" fill="#444445"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-tokens" hidden>
+      <div class="canvas">
     <div class="view" id="view-drft">
     <section class="step">
       <div class="step-head">
@@ -451,38 +585,6 @@
         <p>error · warning · success × container 4단계</p>
       </div>
       <div class="swatches" id="status"></div>
-    </section>
-
-    <section class="step">
-      <div class="step-head">
-        <span class="grade">PREVIEW</span>
-        <h2>Applied</h2>
-        <p>생성된 토큰만으로 구성된 UI</p>
-      </div>
-      <div class="preview">
-        <div class="preview-bar"><b id="pv-label">DEFAULT / LIGHT</b></div>
-        <div class="preview-body">
-          <div class="card">
-            <h3>Weekly digest</h3>
-            <p>토큰이 바뀌면 이 카드도 함께 바뀝니다. 배경은 surfaceLowest, 테두리는 outlineVariant를 씁니다.</p>
-            <div class="btns">
-              <button class="b fill">Publish</button>
-              <button class="b soft">Duplicate</button>
-              <button class="b line">Discard</button>
-            </div>
-          </div>
-          <div class="card">
-            <h3>Form</h3>
-            <input class="inp" placeholder="project name" aria-label="project name">
-            <input class="inp" placeholder="team@studio.com" aria-label="email">
-            <button class="b fill" style="align-self:flex-start">Create project</button>
-          </div>
-          <div class="card">
-            <h3>Signals</h3>
-            <div class="alerts" id="alerts"></div>
-          </div>
-        </div>
-      </div>
     </section>
 
     <section class="step export">
@@ -596,7 +698,10 @@
         <div class="src" id="atomic-src"></div>
       </section>
     </div><!-- /view-atomic -->
+      </div>
+    </div>
   </main>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -808,6 +913,101 @@ const buildTintedRamp = primary => Object.fromEntries(
   GRADES.map(g => [g, blendWithAlpha(sourceGray(g), primary, tintAlphaAt(g))]));
 
 /* ============================================================
+   UI PREVIEW — a real screen, painted only with semantic tokens.
+   Nothing here is a literal colour; change the brand and it re-themes.
+   ============================================================ */
+const ic = (d, o) => '<svg class="pv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+  'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"' + (o || '') + '>' + d + '</svg>';
+const ICONS = {
+  bell:  ic('<path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/>'),
+  bag:   ic('<path d="M4 7h16l-1 13H5L4 7Z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/>'),
+  chev:  ic('<path d="m9 5 7 7-7 7"/>'),
+  plus:  ic('<path d="M12 5v14M5 12h14"/>'),
+  ticket:ic('<path d="M4 8V6h16v2a2 2 0 0 0 0 4v2H4v-2a2 2 0 0 0 0-4Z"/><path d="M9 6v12"/>'),
+  coin:  ic('<ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v5c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/>'),
+  review:ic('<path d="M4 7h10M4 12h7M4 17h10"/><path d="m17 8 1.4 2.8L21.5 11l-2.2 2 .6 3-2.9-1.5L14 16l.6-3-2.2-2 3.1-.2Z"/>'),
+  book:  ic('<path d="M6 4h12v17l-6-4-6 4V4Z"/>'),
+  home:  ic('<path d="M4 10.5 12 4l8 6.5V20H4v-9.5Z"/>'),
+  grid:  ic('<path d="M4 7h9M4 12h6M4 17h9"/><circle cx="17.5" cy="14.5" r="3"/><path d="m20 17 1.5 1.5"/>'),
+  cal:   ic('<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>'),
+  pin:   ic('<path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/>'),
+  user:  ic('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.5 19a6 6 0 0 1 11 0"/>'),
+};
+const PV_TABS = [['home','홈'],['grid','카테고리'],['cal','예약'],['pin','스팟'],['user','마이']];
+const PV_STATS = [['ticket','쿠폰','999'],['coin','포인트','99,999'],['review','리뷰','999'],['book','저장됨','999']];
+
+/* the two pet cards carry their own accent, derived from the brand so the
+   biggest block on the screen re-themes with everything else */
+function petAccents(){
+  const h = rgbToHsl(hexToRGB(state.primary));
+  const alt = rgbToHex(hslToRgb((h.h + 150) % 360, h.s, h.l));
+  return [colorAt(state.primary, 45), colorAt(alt, 45)];
+}
+
+/* the on-colour comes from the accent's own ramp ends (grade 100 / 10), the way
+   onPrimary does — never flat black or white, which reads as off-system */
+function onAccent(accent){
+  const hi = colorAt(accent, 100), lo = colorAt(accent, 10);
+  return contrast(hi, accent) >= contrast(lo, accent) ? hi : lo;
+}
+
+function petCard(accent, name, breed, rows){
+  const on = onAccent(accent);
+  return '<div class="pv-pet" style="background:' + accent + ';color:' + on + '">' +
+    '<div class="pv-pet-l"><div class="pv-photo" style="border-color:' + on + '33"></div>' +
+      '<b>' + name + '</b><span>' + breed + '</span></div>' +
+    '<div class="pv-pet-r">' + rows.map(([k, v], i) =>
+      '<div class="pv-stat"' + (i ? ' style="border-top:1px solid ' + on + '33"' : '') + '>' +
+      '<span>' + k + '</span><b>' + v + '</b></div>').join('') + '</div></div>';
+}
+
+function renderPreview(){
+  const sf = current.sf, cs = current.cs;
+  const [p1, p2] = petAccents();
+  $('pv-screen').innerHTML =
+    '<div class="pv" style="background:' + sf.background + ';color:' + sf.text + '">' +
+      '<div class="pv-status"><b>9:41</b><span>' +
+        '<i class="pv-bars"></i><i class="pv-wifi"></i><i class="pv-bat"></i></span></div>' +
+
+      '<div class="pv-nav"><h3>마이페이지</h3>' +
+        '<div class="pv-navic">' + ICONS.bell + ICONS.bag + '</div></div>' +
+
+      '<div class="pv-row"><div class="pv-avatar" style="background:' + sf.surfaceHigh + '"></div>' +
+        '<div class="pv-id"><b>포들리</b><span style="color:' + sf.text2 + '">내 프로필 보기</span></div>' +
+        '<span style="color:' + sf.onSurfaceVariant + '">' + ICONS.chev + '</span></div>' +
+
+      '<div class="pv-sec"><b>내 반려동물</b>' +
+        '<button class="pv-add" style="background:' + sf.surfaceHigh + ';color:' + sf.text + '">' +
+          ICONS.plus + '</button></div>' +
+
+      '<div class="pv-cards">' +
+        petCard(p1, '쿠니', '장모 닥스훈트',
+          [['나이','15년 11개월'],['몸무게','18kg'],['Pawdly 가입 기간','1년']]) +
+        petCard(p2, '보리', '포메라니안',
+          [['나이','3년 2개월'],['몸무게','4kg'],['Pawdly 가입 기간','8개월']]) +
+      '</div>' +
+
+      '<div class="pv-quick">' + PV_STATS.map(([i, k, v]) =>
+        '<div><span style="color:' + sf.text + '">' + ICONS[i] + '</span>' +
+        '<b>' + k + '</b><em style="color:' + sf.text2 + '">' + v + '</em></div>').join('') + '</div>' +
+
+      '<div class="pv-div" style="background:' + sf.outlineVariant + '"></div>' +
+
+      '<div class="pv-shop"><span style="color:' + sf.text2 + '">쇼핑</span>' +
+        '<div class="pv-link">주문 내역</div></div>' +
+
+      '<div class="pv-tabbar" style="border-top:1px solid ' + sf.outlineVariant + '">' +
+        PV_TABS.map(([i, k], n) => {
+          const on = n === PV_TABS.length - 1;
+          return '<div style="color:' + (on ? cs.primary : sf.onSurfaceVariant) + '">' +
+            ICONS[i] + '<span>' + k + '</span></div>';
+        }).join('') +
+      '</div>' +
+      '<div class="pv-home" style="background:' + sf.text + '"></div>' +
+    '</div>';
+}
+
+/* ============================================================
    ATOMIC SYSTEM — the second taxonomy
    Same curve engine, different sampling and naming:
      step 0…1000  ⇄  grade 100…0   (grade = (1000 − step) / 10)
@@ -977,11 +1177,20 @@ const SURFACE_GRADE = {
   light:{ background:99, backgroundBright:100, backgroundDim:87,
           surfaceLowest:100, surfaceLow:98, surface:95, surfaceHigh:90, surfaceHighest:80,
           onSurface:10, onSurfaceVariant:30, outline:50, outlineVariant:80, text:8, text2:25 },
+  /* dark outline/outlineVariant are 40/20, not drft_1's 70/50 — see note below */
   dark:{  background:6, backgroundBright:24, backgroundDim:0,
           surfaceLowest:8, surfaceLow:10, surface:12, surfaceHigh:17, surfaceHighest:22,
-          onSurface:90, onSurfaceVariant:80, outline:70, outlineVariant:50, text:95, text2:80 },
+          onSurface:90, onSurfaceVariant:80, outline:40, outlineVariant:20, text:95, text2:80 },
 };
 const SCRIM = { light:'#12121266', dark:'#121212cc' };
+
+/* Dark-mode outline correction.
+   drft_1 ships dark outline at grade 70 (#B2B2B2) and outlineVariant at 50
+   (#7E7E7E) — near-white hairlines on a near-black ground. Solving the design
+   file's own variables back through the engine gives grade 40 (#65686D) and 20
+   (#353639): both exactly 30 grades darker, i.e. a deliberate correction, not
+   drift. The values above follow the design file. Light mode is untouched, and
+   this changes no ramp — only the two dark surface-system tokens. */
 
 /* drft_1 hard-codes these tint alphas per token instead of reading the curve.
    Kept so the `repo` basis reproduces the shipped output byte for byte. */
@@ -1053,9 +1262,11 @@ const PRESETS = ['#276EF1','#0B0B0C','#E23E57','#F2545B','#FF7A00','#F7C137',
                  '#00A86B','#7A5C3E','#2F3E46','#D4AF37'];
 
 const state = {
+  /* defaults reproduce the design file: SOURCE curve, 10% tint, dark, tinted
+     surfaces — solved back from its own variables (worst channel Δ4/255) */
   primary:'#276EF1',
-  mode:'default',
-  theme:'light',
+  mode:'primary',
+  theme:'dark',
   status:{ error:'#EA4335', warning:'#F7C137', success:'#3DDC84' },
   view:'drft',
   curve:'source',
@@ -1063,7 +1274,7 @@ const state = {
   statusPalette:'saturated',
   atab:'css',
   linked:null,
-  curveOpen:false,
+  pane:'preview',
   tint:{ strength:10, shape:'sheet' },
   custom:{ neutral:null, color:null },
   chan:'neutral',
@@ -1093,8 +1304,7 @@ function readHash(){
   state.curve = pick('k', CURVE_IDS) || pick('b', ['source','repo']) || state.curve;
   state.view  = pick('v', ['drft','atomic']) || state.view;
   if(p.get('sp') === 'muted' || p.get('sp') === 'saturated') state.statusPalette = p.get('sp');
-  if(p.get('ce') === '1') state.curveOpen = true;
-  if(p.get('ce') === '0') state.curveOpen = false;
+  if(p.get('pn') === 'preview' || p.get('pn') === 'tokens') state.pane = p.get('pn');
   const chRaw = p.get('ch');
   if(chRaw !== null && chRaw !== ''){
     const ch = Number(chRaw);
@@ -1120,7 +1330,7 @@ function writeHash(){
   const p = new URLSearchParams({ p:state.primary, m:state.mode, t:state.theme, k:state.curve,
     e:state.status.error, w:state.status.warning, s:state.status.success,
     ts:Math.round(state.tint.strength * 10), tp:state.tint.shape,
-    v:state.view, ch:state.chroma, sp:state.statusPalette, ce:state.curveOpen ? 1 : 0 });
+    v:state.view, ch:state.chroma, sp:state.statusPalette, pn:state.pane });
   if(state.curve === 'custom' && state.custom.neutral){
     const enc = arr => arr.map(pt => Math.round(pt.x*10) + ':' + Math.round(pt.y*1000)).join(',');
     p.set('cn', enc(state.custom.neutral));
@@ -1225,7 +1435,7 @@ function render(){
   document.querySelectorAll('#chan button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v===state.chan)));
   $('curve-desc').textContent = activeCurve().desc + ' · ' + activeCurve().formula;
   $('tint').value = state.tint.strength;
-  $('tint-val').textContent = state.tint.strength.toFixed(1) + '%';
+  if(document.activeElement !== $('tint-val')) $('tint-val').value = state.tint.strength.toFixed(1) + '%';
   $('tint-desc').textContent = (TINT_SHAPES[state.tint.shape] || TINT_SHAPES.sheet).hint;
   document.querySelectorAll('#tint-shape button').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.v === state.tint.shape)));
@@ -1273,14 +1483,11 @@ function render(){
     status.appendChild(swatchEl(k, st[k], '', family + '/' + grade));
   });
 
-  /* preview */
-  $('pv-label').textContent = state.mode.toUpperCase() + ' / ' + state.theme.toUpperCase();
-  $('alerts').innerHTML = ['error','warning','success'].map(k => {
-    const cap = k[0].toUpperCase()+k.slice(1);
-    const msg = { error:'빌드 3건이 실패했습니다.', warning:'토큰 2개가 대비 기준 미달입니다.', success:'팔레트를 저장했습니다.' }[k];
-    return '<div class="alert" style="background:'+st[k+'Container']+';color:'+st['on'+cap+'Container']+'">' +
-      '<i style="background:'+st[k]+'"></i>'+msg+'</div>';
-  }).join('');
+  const showTokens = state.pane === 'tokens';
+  $('pane-preview').hidden = showTokens;
+  $('pane-tokens').hidden = !showTokens;
+  document.querySelectorAll('#ptabs button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.v === state.pane)));
 
   const inAtomic = state.view === 'atomic';
   $('view-drft').hidden = inAtomic;
@@ -1293,7 +1500,7 @@ function render(){
   document.querySelectorAll('#atabs button').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.v === state.atab)));
   $('chroma').value = state.chroma;
-  $('chroma-val').textContent = state.chroma + '%';
+  if(document.activeElement !== $('chroma-val')) $('chroma-val').value = state.chroma + '%';
   document.querySelectorAll('#statuspal button').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.v === state.statusPalette)));
   $('statuspal-desc').textContent = state.statusPalette === 'muted'
@@ -1308,10 +1515,10 @@ function render(){
 
   /* the editor lives in the rail, so it serves both taxonomies.
      A hidden canvas has clientWidth 0 — never draw while collapsed. */
-  $('curve-expand').hidden = !state.curveOpen;
-  $('curve-toggle').setAttribute('aria-expanded', String(state.curveOpen));
-  $('curve-toggle').textContent = state.curveOpen ? 'COLLAPSE' : 'EXPAND';
-  if(state.curveOpen){ drawCurve(); renderCurveSide(); }
+  /* the editor lives in the left panel and serves both taxonomies */
+  drawCurve();
+  renderCurveSide();
+  renderPreview();
   writeHash();
   try{ localStorage.setItem('chroma-bench', JSON.stringify(state)); }catch(e){}
 }
@@ -1345,14 +1552,18 @@ function cssVar(name){
 }
 
 function drawCurve(){
-  const size = Math.max(160, Math.round(CV.clientWidth || 280));
+  /* the plot is not square — Figma's Graph Tool Area is 402 x 221 */
+  const w = Math.max(160, Math.round(CV.clientWidth || 380));
+  const h = Math.max(120, Math.round(CV.clientHeight || 221));
   const dpr = window.devicePixelRatio || 1;
-  if(CV.width !== Math.round(size*dpr)){ CV.width = Math.round(size*dpr); CV.height = Math.round(size*dpr); }
+  if(CV.width !== Math.round(w*dpr) || CV.height !== Math.round(h*dpr)){
+    CV.width = Math.round(w*dpr); CV.height = Math.round(h*dpr);
+  }
   cx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  cx.clearRect(0, 0, size, size);
+  cx.clearRect(0, 0, w, h);
 
   const L = 24, T = 10, R = 10, B = 24;          /* strips live in L and B */
-  const W = size - L - R, H = size - T - B;
+  const W = w - L - R, H = h - T - B;
   const X = g => L + g/100*W;
   const Y = v => T + (1-v)*H;
   const line = cssVar('--outline-variant') || '#ddd';
@@ -1387,11 +1598,11 @@ function drawCurve(){
   for(let i = 0; i < W; i++){
     const g = i/(W-1)*100;
     cx.fillStyle = chanHex(g);
-    cx.fillRect(L+i, size-18, 1, 13);
+    cx.fillRect(L+i, h-18, 1, 13);
   }
   cx.strokeStyle = line;
   cx.strokeRect(3.5, T-.5, 14, H+1);
-  cx.strokeRect(L-.5, size-18.5, W+1, 14);
+  cx.strokeRect(L-.5, h-18.5, W+1, 14);
 
   /* the curve */
   cx.strokeStyle = acc; cx.lineWidth = 2; cx.beginPath();
@@ -1451,8 +1662,8 @@ function renderCurveSide(){
 /* ---- interaction ---- */
 function evtPoint(e){
   const r = CV.getBoundingClientRect();
-  const size = r.width, L = 24, T = 10, R = 10, B = 24;
-  const W = size - L - R, H = size - T - B;
+  const L = 24, T = 10, R = 10, B = 24;
+  const W = r.width - L - R, H = r.height - T - B;
   return {
     x: Math.max(0, Math.min(100, (e.clientX - r.left - L) / W * 100)),
     y: clamp01(1 - (e.clientY - r.top - T) / H),
@@ -1535,12 +1746,21 @@ $('chan').addEventListener('click', e => {
   const b = e.target.closest('button'); if(!b) return;
   state.chan = b.dataset.v; picked = -1; render();
 });
-$('curve-toggle').addEventListener('click', () => { state.curveOpen = !state.curveOpen; render(); });
+$('ptabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  state.pane = b.dataset.v; render();
+});
+const numInput = (id, apply) => $(id).addEventListener('input', e => {
+  const v = parseFloat(String(e.target.value).replace(/[^0-9.\-]/g, ''));
+  if(Number.isFinite(v)) apply(v);
+});
+numInput('tint-val', v => { state.tint.strength = Math.max(0, Math.min(60, v)); render(); });
+numInput('chroma-val', v => { state.chroma = Math.max(0, Math.min(100, Math.round(v))); render(); });
 $('curve-reset').addEventListener('click', () => { state.curve = 'source'; picked = -1; render(); });
 $('curve-linear').addEventListener('click', () => {
   seedCustom('repo'); state.curve = 'custom'; picked = -1; render();
 });
-if(window.ResizeObserver) new ResizeObserver(() => { if(state.curveOpen) drawCurve(); }).observe(CV);
+if(window.ResizeObserver) new ResizeObserver(() => drawCurve()).observe(CV);
 
 /* ============================================================
    LAYER 0 VIEW — the source ramps every token is drawn from

@@ -1,4 +1,4 @@
-# DRFT AI — Color Engine
+# DRFT_1 — Color Engine
 
 [drft_1](https://github.com/minus31/drft_1)의 컬러 엔진만 떼어내 만든 단일 파일 웹앱.
 의존성이 없고 빌드도 필요 없습니다 — `index.html`을 브라우저로 열면 끝입니다.
@@ -6,6 +6,18 @@
 원본 로직: `components/DesignSystemLogic/Colors/colorSystem.ts` + `colorStore.ts`
 
 ---
+
+## 화면
+
+좌측 패널에 모든 컨트롤, 우측에 `UI Preview` / `Tokens` 두 탭.
+
+- **UI Preview** — iPhone 프레임 안에 실제 앱 화면(마이페이지)이 라이브로 그려집니다.
+  전부 semantic 토큰으로만 칠해져 있어서 브랜드 색을 바꾸면 폰 안이 즉시 리테마됩니다.
+  하드코딩된 hex는 0건.
+- **Tokens** — 좌측 `System` 세그에 따라 DRFT Engine 5섹션 / Atomic System 7섹션이 전환됩니다.
+
+셸 자체도 엔진 출력으로 칠해집니다. 디자인 파일(Figma)의 변수 이름이 우리 토큰 이름과
+같아서(`Base Color/Surface/*Surface`, `Primary/*Primary Variant` …) 그대로 연결했습니다.
 
 ## 구조
 
@@ -167,7 +179,12 @@ DRFT 탭의 Color Source와 동일한 개념입니다. layer 0의 각 스톱 칸
 **2. 채널 반올림** — 시트는 버림(floor). `#B3261E`의 90은 시트가 `#F2DAD9`,
 리포의 `Math.round`는 `#F2DBDA`.
 
-**3. 다크 서피스 틴트 알파** — 시트의 알파는 50에서 정점인 선형 텐트인데, 리포의 다크 모드는
+**3. 다크 outline이 30 grade 밝습니다.** 디자인 파일의 변수를 엔진으로 역산하면
+`outline`은 grade 40(`#65686D`), `outlineVariant`는 20(`#353639`)에서 나옵니다. 배포된 코드는
+70/50이라 거의 흰색 헤어라인이 됩니다. 둘 다 정확히 30씩 차이나서 드리프트가 아니라 의도된
+보정으로 보고 디자인 파일 쪽을 따랐습니다. 라이트 모드와 램프는 영향 없습니다.
+
+**4. 다크 서피스 틴트 알파** — 시트의 알파는 50에서 정점인 선형 텐트인데, 리포의 다크 모드는
 `alpha = grade`로 하드코딩돼 있습니다 (`surfaceHighest`: grade 22 → 22%, 텐트 기준으론 4%).
 라이트 모드는 텐트와 일치합니다.
 
@@ -179,6 +196,15 @@ DRFT 탭의 Color Source와 동일한 개념입니다. layer 0의 각 스톱 칸
 - 틴트 strength 10% + SHEET → 시트 알파 13개(`0 2 2 2 4 6 8 10 8 6 4 2 0`)와 일치
 - 틴트 strength 0% → 틴트 램프가 순수 그레이 램프와 완전히 일치
 - 프리셋 5종 모두 단조 증가, 양 끝이 정확히 `#FFFFFF` / `#000000`
+
+## 디자인 파일과의 대조
+
+기본 상태(primary `#276EF1` · SOURCE 커브 · 틴트 10% · dark · Primary Tint)에서 셸의 계산색이
+Figma 변수와 채널당 최대 **Δ4/255** 안에 들어옵니다. primary 3종(`#276ef1` `#dbe6fc` `#ffffff`)은
+완전 일치. 즉 디자인 파일은 배포본이 아니라 **교정된 설정**으로 만들어졌습니다.
+
+미리보기 안의 아이콘은 원본이 통짜 PNG라 벡터를 추출할 수 없어 단순 스트로크로 대체했습니다.
+정확한 아이콘이 필요하면 Figma에서 아이콘 컴포넌트를 별도 노드로 노출해주세요.
 
 ## 라이선스
 
