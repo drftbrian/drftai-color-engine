@@ -160,6 +160,46 @@
     color:var(--on-primary);font-family:var(--mono);font-size:8px;line-height:13px;text-align:center;
     z-index:5;pointer-events:none}
   .inspect #pv-screen .role-hot{outline:2px solid var(--primary);outline-offset:0}
+
+  /* ---------- audit ---------- */
+  #imp-text{width:100%;resize:vertical;background:var(--s-lowest);color:var(--text);
+    border:1px solid var(--outline);border-radius:8px;padding:8px;
+    font-family:var(--mono);font-size:11px;line-height:1.5}
+  #imp-text:focus{outline:none;border-color:var(--primary)}
+
+  .ad-funnel{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+  .ad-funnel div{border:1px solid var(--outline-variant);border-radius:8px;padding:14px;
+    display:flex;flex-direction:column;gap:4px}
+  .ad-funnel b{font-family:var(--mono);font-size:26px;line-height:1;color:var(--text)}
+  .ad-funnel span{font-family:var(--mono);font-size:10px;color:var(--text2);letter-spacing:.04em}
+  .ad-funnel .hot{border-color:var(--primary)}
+  .ad-funnel .hot b{color:var(--primary)}
+
+  .ad-fit{border:1px solid var(--outline-variant);border-radius:8px;overflow:hidden}
+  .ad-fit-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;
+    background:var(--s-low);border-bottom:1px solid var(--outline-variant)}
+  .ad-fit-head b{font-family:var(--mono);font-size:12px}
+  .ad-fit-head code{font-family:var(--mono);font-size:11px;color:var(--primary)}
+  .ad-fit-head .ghost{margin-left:auto;height:28px}
+  .ad-worst{font-family:var(--mono);font-size:10px;border:1px solid currentColor;border-radius:3px;
+    padding:2px 6px}
+  .ad-worst.ok{color:#1a7f4b}.ad-worst.mid{color:#9a6b00}.ad-worst.bad{color:#b3261e}
+
+  .ad-rows{display:flex;flex-direction:column}
+  .ad-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 14px;
+    border-top:1px solid var(--outline-variant)}
+  .ad-rows > .ad-row:first-child{border-top:0}
+  .ad-row code{font-family:var(--mono);font-size:10.5px;color:var(--text2)}
+  .ad-name{min-width:170px;color:var(--text)!important}
+  .ad-sw{width:14px;height:14px;border-radius:3px;border:1px solid var(--outline-variant);flex:none}
+  .ad-arrow{color:var(--text2);font-size:11px}
+  .ad-meta{opacity:.7}
+  .ad-band{margin-left:auto}
+  .ad-note{font-family:var(--mono);font-size:10px;color:var(--text2);opacity:.8}
+  .ad-d{border:1px solid currentColor;border-radius:3px;padding:1px 5px}
+  .ad-d.ok{color:#1a7f4b}.ad-d.bad{color:#b3261e}
+  .ad-acts{display:flex;gap:5px}
+  .mini.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
   .phone{position:relative;width:362.294px;height:738.26px;flex:none;
     filter:drop-shadow(0 15.855px 23.783px rgba(0,0,0,.2))}
   .phone .screen{position:absolute;top:2.06%;bottom:2.06%;left:4.82%;right:5.03%;
@@ -544,6 +584,20 @@
       </div>
     </div>
 
+    <div id="field-import">
+      <div class="sec-head"><h2>Import</h2></div>
+      <div class="sec-body">
+        <p class="sec-note">CSS 변수 · 토큰 JSON · Tailwind config · hex 목록 아무거나 붙여넣으세요.</p>
+        <textarea id="imp-text" spellcheck="false" rows="5"
+          placeholder="--surface: #1E2024;&#10;{&quot;Dark/Background/Background&quot;:&quot;#0E1011&quot;}&#10;#005EB5"></textarea>
+        <div class="curve-actions">
+          <button class="ghost" id="imp-run">ANALYZE</button>
+          <button class="ghost" id="imp-sample">SAMPLE</button>
+        </div>
+        <p class="sec-note" id="imp-summary"></p>
+      </div>
+    </div>
+
     <div id="field-status">
       <div class="sec-head"><h2>Status Colors</h2></div>
       <div class="sec-body">
@@ -570,6 +624,7 @@
       <div id="ptabs" style="display:flex;gap:10px">
         <button data-v="preview" aria-pressed="true">UI Preview</button>
         <button data-v="tokens" aria-pressed="false">Tokens</button>
+        <button data-v="audit" aria-pressed="false">Audit</button>
       </div>
       <button class="mini" id="inspect-btn" aria-pressed="false">INSPECT</button>
     </div>
@@ -588,6 +643,10 @@
         </div>
         <div class="pv-legend" id="pv-legend" hidden></div>
       </div>
+    </div>
+
+    <div class="pane" id="pane-audit" hidden>
+      <div class="canvas"><div id="audit-body"></div></div>
     </div>
 
     <div class="pane" id="pane-tokens" hidden>
@@ -818,8 +877,8 @@ const TINT_SHAPES = {
 /* the source sheet's own numbers, kept for the readout */
 const TINT_CURVE = {100:0, 98:2, 95:2, 90:2, 80:4, 70:6, 60:8, 50:10, 40:8, 30:6, 20:4, 10:2, 0:0};
 
-function tintShapeAt(grade){
-  const pts = (TINT_SHAPES[state.tint.shape] || TINT_SHAPES.sheet).pts;
+function tintShapeAt(grade, shape){
+  const pts = (TINT_SHAPES[shape || state.tint.shape] || TINT_SHAPES.sheet).pts;
   const g = Math.max(0, Math.min(100, grade));
   for(let i = 0; i < pts.length - 1; i++){
     const [x0, y0] = pts[i], [x1, y1] = pts[i+1];
@@ -1428,6 +1487,7 @@ const state = {
   linked:null,
   pane:'preview',
   inspect:false,
+  exceptions:[],
   tint:{ strength:10, shape:'sheet' },
   custom:{ neutral:null, color:null },
   chan:'neutral',
@@ -1457,7 +1517,7 @@ function readHash(){
   state.curve = pick('k', CURVE_IDS) || pick('b', ['source','repo']) || state.curve;
   state.view  = pick('v', ['drft','atomic']) || state.view;
   if(p.get('sp') === 'muted' || p.get('sp') === 'saturated') state.statusPalette = p.get('sp');
-  if(p.get('pn') === 'preview' || p.get('pn') === 'tokens') state.pane = p.get('pn');
+  if(['preview','tokens','audit'].includes(p.get('pn'))) state.pane = p.get('pn');
   if(p.get('ins') === '1') state.inspect = true;
   const chRaw = p.get('ch');
   if(chRaw !== null && chRaw !== ''){
@@ -1640,11 +1700,15 @@ function render(){
     status.appendChild(swatchEl(k, st[k], '', family + '/' + grade));
   });
 
-  const showTokens = state.pane === 'tokens';
-  $('pane-preview').hidden = showTokens;
-  $('pane-tokens').hidden = !showTokens;
+  $('pane-preview').hidden = state.pane !== 'preview';
+  $('pane-tokens').hidden  = state.pane !== 'tokens';
+  $('pane-audit').hidden   = state.pane !== 'audit';
   document.querySelectorAll('#ptabs button').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.v === state.pane)));
+  if(state.pane === 'audit') renderAudit();
+  $('imp-summary').textContent = audit && audit.entries
+    ? audit.entries.length + '색 · 시스템 ' + (audit.system || []).length +
+      ' · 시스템 밖 ' + (audit.drift || []).length : '';
 
   const inAtomic = state.view === 'atomic';
   $('view-drft').hidden = inAtomic;
@@ -2461,6 +2525,316 @@ function exportAtomic(kind){
   lines.push('}');
   return lines.join('\n') + '\n';
 }
+
+/* ============================================================
+   AUDIT — read someone else's palette back into engine settings
+   The three findings this is built on, measured on a real product file:
+     · system greys are tinted toward the brand; hand-picked ones are neutral
+     · a hand-built palette compresses to one engine config (worst Δ2)
+     · that leaves only a couple of colours needing a human decision
+   ============================================================ */
+
+/* ---------- 1. parser: any of four text shapes → [{name?, hex, count}] ------ */
+function parsePalette(text){
+  const out = new Map();
+  const add = (hex, name) => {
+    const h = hex.toLowerCase();
+    const e = out.get(h) || { hex:h, count:0, names:[] };
+    e.count++;
+    if(name && !e.names.includes(name)) e.names.push(name);
+    out.set(h, e);
+  };
+  const expand = h => h.length === 4
+    ? '#' + h[1] + h[1] + h[2] + h[2] + h[3] + h[3] : h;
+
+  /* named forms first, so a colour keeps its name */
+  const named = [
+    /--([A-Za-z0-9_-]+)\s*:\s*(#[0-9a-fA-F]{3,8})/g,               /* css var   */
+    /["']([^"']+)["']\s*:\s*["'](#[0-9a-fA-F]{3,8})["']/g,         /* json      */
+    /([A-Za-z0-9_$-]+)\s*:\s*['"](#[0-9a-fA-F]{3,8})['"]/g,        /* tailwind  */
+  ];
+  const claimed = new Set();
+  for(const re of named){
+    let m;
+    while((m = re.exec(text))){
+      add(expand(m[2].slice(0, 7)), m[1]);
+      claimed.add(m.index + m[0].indexOf(m[2]));
+    }
+  }
+  /* then every remaining bare hex */
+  const bare = /#[0-9a-fA-F]{3,8}\b/g;
+  let m;
+  while((m = bare.exec(text))) if(!claimed.has(m.index)) add(expand(m[0].slice(0, 7)));
+
+  return [...out.values()].map(e => ({ ...e, name:e.names[0] || null }))
+    .sort((a, b) => b.count - a.count);
+}
+
+/* ---------- 2. classifier --------------------------------------------------- */
+const spreadOf = hex => { const c = hexToRGB(hex); return Math.max(c.r,c.g,c.b) - Math.min(c.r,c.g,c.b); };
+const chMax = (a, b) => { const x = hexToRGB(a), y = hexToRGB(b);
+  return Math.max(Math.abs(x.r-y.r), Math.abs(x.g-y.g), Math.abs(x.b-y.b)); };
+const hueGap = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+
+const DRIFT_BANDS = [
+  { max:2,        key:'merge',  label:'같은 색',   note:'자동 병합' },
+  { max:6,        key:'snap',   label:'드리프트',  note:'스냅' },
+  { max:Infinity, key:'decide', label:'다른 색',   note:'사람 결정' },
+];
+const bandFor = d => DRIFT_BANDS.find(b => d <= b.max);
+
+function classifyPalette(entries){
+  const info = entries.map(e => {
+    const hsl = rgbToHsl(hexToRGB(e.hex));
+    return { ...e, hsl, spread:spreadOf(e.hex) };
+  });
+
+  /* brand = the most saturated colour, weighted by how often it appears */
+  const chromatic = info.filter(x => x.hsl.s >= 25 && x.spread >= 20);
+  const brand = chromatic.slice().sort((a, b) =>
+    (b.hsl.s * Math.log(1 + b.count)) - (a.hsl.s * Math.log(1 + a.count)))[0] || null;
+
+  const neutralish = info.filter(x => x.hsl.s < 25 || x.spread < 20);
+  const hues = info.filter(x => !neutralish.includes(x));
+
+  /* the tint-signature test: a system grey leans toward the brand hue,
+     a hand-picked one has no lean at all */
+  const system = [], loose = [];
+  neutralish.forEach(x => {
+    const tinted = x.spread > 2 && (!brand || hueGap(x.hsl.h, brand.hsl.h) < 45);
+    (tinted ? system : loose).push({ ...x, tinted });
+  });
+
+  /* every untinted grey is measured against the nearest system grey */
+  const drift = loose.map(x => {
+    let near = null;
+    system.forEach(sv => {
+      const d = chMax(x.hex, sv.hex);
+      if(!near || d < near.d) near = { d, of:sv };
+    });
+    return { ...x, near, band: near ? bandFor(near.d) : bandFor(Infinity) };
+  });
+
+  return { info, brand, system, drift, hues, neutralish };
+}
+
+/* ---------- 3. solver ------------------------------------------------------- */
+/* same maths as blendWithAlpha / sourceGray, with the constants hoisted out of
+   the loop — the search runs a couple of million mixes */
+function desatOf(primaryHex){
+  const hsl = rgbToHsl(hexToRGB(primaryHex));
+  return hslToRgb(hsl.h, hsl.s * 0.5, hsl.l);
+}
+const grayLevel = (curveId, g) =>
+  Math.max(0, Math.min(255, Math.round(255 * clamp01((CURVES[curveId] || CURVES.source).neutral(g)))));
+
+function bestGrade(target, curveId, shape, strength, de, coarse, fine){
+  const t = hexToRGB(target);
+  let best = null;
+  const probe = g => {
+    const v = grayLevel(curveId, g), a = strength * tintShapeAt(g, shape);
+    const r = Math.round(v + (de.r - v) * a / 100);
+    const gg = Math.round(v + (de.g - v) * a / 100);
+    const b = Math.round(v + (de.b - v) * a / 100);
+    const d = Math.max(Math.abs(r - t.r), Math.abs(gg - t.g), Math.abs(b - t.b));
+    if(!best || d < best.d) best = { d, g, hex:rgbToHex({ r, g:gg, b }), alpha:a };
+  };
+  for(let g = 0; g <= 100; g += coarse) probe(g);
+  const c = best.g;
+  for(let g = Math.max(0, c - coarse); g <= Math.min(100, c + coarse); g += fine) probe(g);
+  return best;
+}
+
+function solveSystem(neutrals, primaryHex){
+  if(!neutrals.length || !primaryHex) return null;
+  const de = desatOf(primaryHex);
+  const shapes = Object.keys(TINT_SHAPES);
+  const score = (curveId, shape, strength, coarse, fine) => {
+    let worst = 0, sum = 0;
+    const tokens = neutrals.map(n => {
+      const b = bestGrade(n.hex, curveId, shape, strength, de, coarse, fine);
+      worst = Math.max(worst, b.d); sum += b.d;
+      return { name:n.name, target:n.hex, grade:b.g, alpha:b.alpha, got:b.hex, d:b.d };
+    });
+    return { curve:curveId, shape, strength, worst, sum, tokens };
+  };
+
+  /* coarse pass over every curve × shape × strength, then refine the winner */
+  let best = null;
+  for(const curveId of CURVE_IDS){
+    if(curveId === 'custom') continue;
+    for(const shape of shapes){
+      for(let st = 0; st <= 60; st += 1){
+        const r = score(curveId, shape, st, 2, 0.25);
+        if(!best || r.worst < best.worst || (r.worst === best.worst && r.sum < best.sum)) best = r;
+      }
+    }
+  }
+  for(let st = Math.max(0, best.strength - 2); st <= Math.min(60, best.strength + 2); st += 0.25){
+    const r = score(best.curve, best.shape, st, 0.5, 0.02);
+    if(r.worst < best.worst || (r.worst === best.worst && r.sum < best.sum)) best = r;
+  }
+  return best;
+}
+
+/* ---------- 4. run + report ------------------------------------------------- */
+let audit = null;
+
+function runAudit(text){
+  const entries = parsePalette(text);
+  if(!entries.length){ audit = { empty:true, entries:[] }; return audit; }
+  const cls = classifyPalette(entries);
+
+  /* The tint signature is a good prior for *which* colours to solve against, but
+     it misreads the ends of the range: at grade 0 or 100 a tint has no room to
+     show, so a legitimate system colour can look untinted. So: solve on the
+     tinted candidates, then re-classify every neutral by whether the solved
+     engine can actually reproduce it. Residual, not spread, is the verdict. */
+  let fit = cls.brand ? solveSystem(cls.system, cls.brand.hex) : null;
+  let system = cls.system, drift = cls.drift;
+
+  if(fit){
+    const de = desatOf(cls.brand.hex);
+    const graded = cls.neutralish.map(x => ({
+      ...x, best: bestGrade(x.hex, fit.curve, fit.shape, fit.strength, de, 0.5, 0.02),
+    }));
+    system = graded.filter(x => x.best.d <= 2).map(x => ({ ...x, tinted:x.spread > 2 }));
+    const loose = graded.filter(x => x.best.d > 2);
+    drift = loose.map(x => {
+      let near = null;
+      system.forEach(sv => {
+        const d = chMax(x.hex, sv.hex);
+        if(!near || d < near.d) near = { d, of:sv };
+      });
+      return { ...x, near, band:bandFor(near ? near.d : Infinity), residual:x.best.d };
+    });
+    /* re-solve on the confirmed set so the fit is not dragged by a stray colour */
+    if(system.length && system.length !== cls.system.length){
+      const better = solveSystem(system, cls.brand.hex);
+      if(better && better.worst <= fit.worst) fit = better;
+    }
+    /* both shapes are identical below grade 90 — say so rather than pretending */
+    fit.shapeCertain = system.some(x => x.best && x.best.g > 90);
+  }
+
+  audit = { entries, ...cls, system, drift, fit };
+  return audit;
+}
+
+/* ---------- 5. the report --------------------------------------------------- */
+const swatchDot = hex => '<i class="ad-sw" style="background:' + hex + '"></i>';
+
+function renderAudit(){
+  const el = $('audit-body');
+  if(!audit){ el.innerHTML = '<p class="sec-note">왼쪽 Import에 팔레트를 붙여넣고 ANALYZE를 누르세요.</p>'; return; }
+  if(audit.empty){ el.innerHTML = '<p class="sec-note">색을 하나도 찾지 못했습니다.</p>'; return; }
+
+  const { entries, brand, system, drift, hues, fit } = audit;
+  const byBand = k => drift.filter(d => d.band.key === k);
+  const merge = byBand('merge'), snap = byBand('snap'), decide = byBand('decide');
+
+  const funnel =
+    '<div class="ad-funnel">' +
+      '<div><b>' + entries.length + '</b><span>선언된 색</span></div>' +
+      '<div><b>' + system.length + '</b><span>시스템 그레이</span></div>' +
+      '<div><b>' + hues.length + '</b><span>유채색</span></div>' +
+      '<div class="' + (decide.length ? 'hot' : '') + '"><b>' + decide.length + '</b><span>사람 결정</span></div>' +
+    '</div>';
+
+  const fitCard = fit
+    ? '<div class="ad-fit">' +
+        '<div class="ad-fit-head"><b>재현 설정</b>' +
+          '<code>' + fit.curve + ' · ' + (brand ? brand.hex.toUpperCase() : '') + ' · ' +
+          (fit.shapeCertain ? fit.shape : fit.shape + '?') + ' · ' +
+          fit.strength.toFixed(2).replace(/\.?0+$/, '') + '%</code>' +
+          (fit.shapeCertain ? '' :
+            '<span class="ad-note">shape 미결정 — grade 90 위 색이 없어 두 shape이 구분 안 됨</span>') +
+          '<span class="ad-worst' + (fit.worst <= 2 ? ' ok' : fit.worst <= 6 ? ' mid' : ' bad') + '">최대 오차 Δ' + fit.worst + '</span>' +
+          '<button class="ghost" id="ad-apply">이 설정 적용</button></div>' +
+        '<div class="ad-rows">' + fit.tokens.map(t =>
+          '<div class="ad-row"><code class="ad-name">' + (t.name || '—') + '</code>' +
+          swatchDot(t.target) + '<code>' + t.target.toUpperCase() + '</code>' +
+          '<span class="ad-arrow">→</span>' +
+          swatchDot(t.got) + '<code>' + t.got.toUpperCase() + '</code>' +
+          '<code class="ad-meta">grade ' + t.grade.toFixed(1) + ' · ' + t.alpha.toFixed(1) + '%</code>' +
+          '<code class="ad-d' + (t.d <= 2 ? ' ok' : '') + '">Δ' + t.d + '</code></div>').join('') +
+        '</div></div>'
+    : '<p class="sec-note">브랜드 색을 특정하지 못해 역산을 건너뜁니다. 유채색이 하나도 없습니다.</p>';
+
+  const driftRows = drift.length
+    ? '<div class="ad-rows">' + drift.map((d, i) =>
+        '<div class="ad-row"><code class="ad-name">' + (d.name || '—') + '</code>' +
+        swatchDot(d.hex) + '<code>' + d.hex.toUpperCase() + '</code>' +
+        '<code class="ad-meta">x' + d.count + ' · 퍼짐 ' + d.spread + '</code>' +
+        (d.near ? '<span class="ad-arrow">→</span>' + swatchDot(d.near.of.hex) +
+          '<code>' + (d.near.of.name || d.near.of.hex.toUpperCase()) + '</code>' +
+          '<code class="ad-d' + (d.near.d <= 6 ? ' ok' : ' bad') + '">Δ' + d.near.d + '</code>' : '') +
+        '<code class="ad-band">' + d.band.label + ' · ' + d.band.note + '</code>' +
+        (d.band.key === 'decide'
+          ? '<span class="ad-acts"><button class="mini" data-snap="' + d.hex + '">스냅</button>' +
+            '<button class="mini' + (state.exceptions.includes(d.hex) ? ' on' : '') +
+            '" data-keep="' + d.hex + '">예외 유지</button></span>' : '') +
+        '</div>').join('') + '</div>'
+    : '<p class="sec-note">시스템 밖 색이 없습니다.</p>';
+
+  el.innerHTML =
+    '<section class="step"><div class="step-head"><span class="grade">FUNNEL</span>' +
+      '<h2>색 인구조사</h2><p>' + (brand ? '브랜드 후보 ' + brand.hex.toUpperCase() : '브랜드 미검출') + '</p></div>' +
+      funnel + '</section>' +
+    '<section class="step"><div class="step-head"><span class="grade">SOLVE</span>' +
+      '<h2>엔진 설정 역산</h2><p>시스템 그레이 ' + system.length + '개</p></div>' + fitCard + '</section>' +
+    '<section class="step"><div class="step-head"><span class="grade">DRIFT</span>' +
+      '<h2>시스템 밖 색</h2><p>병합 ' + merge.length + ' · 스냅 ' + snap.length +
+      ' · 결정 ' + decide.length + '</p></div>' + driftRows + '</section>';
+}
+
+/* ---------- wiring ---------- */
+const SAMPLE_PALETTE = `/* 990 Product Builder — Figma variables */
+"Dark/Background/Background": "#0E1011"
+"Dark/Surface/Surface Low":   "#15171B"
+"Dark/Surface/Surface":       "#1E2024"
+"Dark/Surface/Surface High":  "#24282E"
+"Dark/Surface/Surface Highest":"#2C3137"
+"Dark/Outline/Outline Variant":"#373C43"
+"Dark/On Surface/On Surface Variant":"#C2C7CF"
+"Color/Primary/Primary":      "#005EB5"
+"light/--system/success":     "#1D9745"
+/* 시스템 밖으로 발견된 것들 */
+#265DAF #CECECE #242424 #A4A4A4 #276EF1 #5BCA3D`;
+
+$('imp-run').addEventListener('click', () => {
+  const t = $('imp-text').value.trim();
+  if(!t){ $('imp-summary').textContent = '붙여넣은 내용이 없습니다.'; return; }
+  runAudit(t);
+  state.pane = 'audit';
+  render();
+});
+$('imp-sample').addEventListener('click', () => {
+  $('imp-text').value = SAMPLE_PALETTE;
+  $('imp-run').click();
+});
+$('audit-body').addEventListener('click', e => {
+  const apply = e.target.closest('#ad-apply');
+  if(apply && audit && audit.fit){
+    state.primary = audit.brand.hex.toUpperCase();
+    state.curve = audit.fit.curve;
+    state.tint.shape = audit.fit.shape;
+    state.tint.strength = Math.round(audit.fit.strength * 4) / 4;
+    state.mode = 'primary';
+    render();
+    return;
+  }
+  const keep = e.target.closest('[data-keep]');
+  if(keep){
+    const h = keep.dataset.keep;
+    const i = state.exceptions.indexOf(h);
+    if(i >= 0) state.exceptions.splice(i, 1); else state.exceptions.push(h);
+    renderAudit();
+    return;
+  }
+  const snap = e.target.closest('[data-snap]');
+  if(snap) copy(snap.dataset.snap, snap.dataset.snap.toUpperCase() + ' 복사됨');
+});
 
 /* ============================================================
    EXPORT
