@@ -12,12 +12,43 @@
 좌측 패널에 모든 컨트롤, 우측에 `UI Preview` / `Tokens` 두 탭.
 
 - **UI Preview** — iPhone 프레임 안에 실제 앱 화면(마이페이지)이 라이브로 그려집니다.
-  전부 semantic 토큰으로만 칠해져 있어서 브랜드 색을 바꾸면 폰 안이 즉시 리테마됩니다.
-  하드코딩된 hex는 0건.
+  브랜드 색을 바꾸면 즉시 리테마되고, **System을 토글하면 그 taxonomy로 다시 칠해집니다.**
+  하드코딩된 hex는 0건. `INSPECT`를 켜면 각 영역이 어느 토큰에서 왔는지 보입니다.
 - **Tokens** — 좌측 `System` 세그에 따라 DRFT Engine 5섹션 / Atomic System 7섹션이 전환됩니다.
 
 셸 자체도 엔진 출력으로 칠해집니다. 디자인 파일(Figma)의 변수 이름이 우리 토큰 이름과
 같아서(`Base Color/Surface/*Surface`, `Primary/*Primary Variant` …) 그대로 연결했습니다.
+
+## Role 레이어 — 제품과 taxonomy 사이
+
+제품은 자기가 필요한 **역할**만 선언하고, 각 시스템이 자기 어휘로 그 역할을 채웁니다.
+제품 코드는 어느 taxonomy도 모릅니다.
+
+```
+제품(폰 화면)  →  role       →  시스템 어댑터  →  토큰
+               appBg            DRFT           background
+                                Atomic         background/primary ← neutral/950
+```
+
+두 시스템이 같은 값을 내도록 억지로 맞추지 않습니다. 각 체계가 자연스럽게 주는 걸 쓰기 때문에
+토글하면 화면이 실제로 달라집니다.
+
+| role | DRFT Engine | Atomic System |
+|---|---|---|
+| `appBg` | `background` | `background/primary` |
+| `raised` | `surfaceHigh` | `background/tertiary` |
+| `textPrimary` | `text` | `foreground/primary` |
+| `textSecondary` | `text2` | `foreground/secondary` |
+| `textTertiary` | `onSurfaceVariant` | `foreground/tertiary` |
+| `divider` | `outlineVariant` | `border/default` |
+| `accent` | `primary` | `brand/backgroundBase` |
+| `petA` | primary 램프 @45 *(파생)* | `primary/500` |
+| `petB` | hue +150° @45 *(파생)* | `saturated/teal/500` |
+
+`petB`가 두 체계의 성격 차이를 그대로 보여줍니다. DRFT에는 이름 붙은 hue 팔레트가 없어서
+색을 **만들어내야** 하지만, Atomic에는 11개 hue가 있어서 **골라 쓰면** 됩니다.
+
+이 계약은 export에도 나갑니다 — CSS의 `--role-*` 변수와 JSON의 `product` 블록.
 
 ## 구조
 
@@ -184,7 +215,12 @@ DRFT 탭의 Color Source와 동일한 개념입니다. layer 0의 각 스톱 칸
 70/50이라 거의 흰색 헤어라인이 됩니다. 둘 다 정확히 30씩 차이나서 드리프트가 아니라 의도된
 보정으로 보고 디자인 파일 쪽을 따랐습니다. 라이트 모드와 램프는 영향 없습니다.
 
-**4. 다크 서피스 틴트 알파** — 시트의 알파는 50에서 정점인 선형 텐트인데, 리포의 다크 모드는
+**4. 다크에서 `text2`와 `onSurfaceVariant`가 같은 색입니다.** 둘 다 grade 80이라 값이
+완전히 동일합니다(`#C6C8CB`). DRFT는 텍스트 계열 토큰이 4개인데 다크에서는 실제로 3단계만
+나오는 셈입니다. 라이트에서는 25 / 30으로 갈라집니다. Atomic 쪽은 같은 자리에서 3단계가
+모두 다릅니다(`#FFFFFF` / `#ADAFB3` / `#7A7E85`).
+
+**5. 다크 서피스 틴트 알파** — 시트의 알파는 50에서 정점인 선형 텐트인데, 리포의 다크 모드는
 `alpha = grade`로 하드코딩돼 있습니다 (`surfaceHighest`: grade 22 → 22%, 텐트 기준으론 4%).
 라이트 모드는 텐트와 일치합니다.
 

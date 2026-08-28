@@ -128,7 +128,38 @@
   .pane{flex:1;min-height:0;overflow-y:auto}
 
   /* phone preview */
-  .stage{height:100%;display:flex;align-items:center;justify-content:center;padding:24px}
+  .stage{height:100%;display:flex;align-items:center;justify-content:center;gap:20px;padding:24px;
+    overflow:auto}
+  .tabs-head{justify-content:space-between}
+
+  /* ---------- inspector ---------- */
+  .pv-legend{width:296px;flex:none;max-height:100%;overflow-y:auto;display:flex;flex-direction:column;
+    gap:4px;border:1px solid var(--outline-variant);border-radius:12px;padding:12px;background:var(--s-low)}
+  .lg-head{display:flex;flex-direction:column;gap:2px;padding:0 4px 8px;
+    border-bottom:1px solid var(--outline-variant);margin-bottom:4px}
+  .lg-head b{font-family:var(--mono);font-size:12px;color:var(--text)}
+  .lg-head span{font-family:var(--mono);font-size:10px;color:var(--text2)}
+  .lg-row{display:flex;align-items:flex-start;gap:8px;padding:6px 4px;border-radius:6px;cursor:default}
+  .lg-row:hover{background:var(--s)}
+  .lg-n{width:16px;height:16px;flex:none;border-radius:50%;background:var(--primary);color:var(--on-primary);
+    font-family:var(--mono);font-size:9px;font-style:normal;display:flex;align-items:center;
+    justify-content:center;margin-top:2px}
+  .lg-sw{width:16px;height:16px;flex:none;border-radius:4px;border:1px solid var(--outline-variant);
+    margin-top:2px}
+  .lg-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+  .lg-txt b{font-family:var(--mono);font-size:10.5px;color:var(--text)}
+  .lg-txt span{font-family:var(--kr);font-size:10px;color:var(--text2)}
+  .lg-txt code{font-family:var(--mono);font-size:9.5px;color:var(--primary);word-break:break-all}
+  .lg-txt .lg-src{color:var(--text2);opacity:.8}
+  .lg-txt .lg-alt{color:var(--text2);opacity:.5}
+  .lg-hex{font-family:var(--mono);font-size:9px;color:var(--text2);margin-top:3px}
+
+  .inspect #pv-screen [data-role]{outline:1px dashed var(--primary);outline-offset:-1px;position:relative}
+  .inspect #pv-screen [data-role]::after{content:var(--rn,"");position:absolute;top:1px;left:1px;
+    min-width:13px;height:13px;padding:0 2px;border-radius:7px;background:var(--primary);
+    color:var(--on-primary);font-family:var(--mono);font-size:8px;line-height:13px;text-align:center;
+    z-index:5;pointer-events:none}
+  .inspect #pv-screen .role-hot{outline:2px solid var(--primary);outline-offset:0}
   .phone{position:relative;width:362.294px;height:738.26px;flex:none;
     filter:drop-shadow(0 15.855px 23.783px rgba(0,0,0,.2))}
   .phone .screen{position:absolute;top:2.06%;bottom:2.06%;left:4.82%;right:5.03%;
@@ -535,9 +566,12 @@
   </aside>
 
   <main class="panel panel-right">
-    <div class="sec-head tabs-head" id="ptabs">
-      <button data-v="preview" aria-pressed="true">UI Preview</button>
-      <button data-v="tokens" aria-pressed="false">Tokens</button>
+    <div class="sec-head tabs-head">
+      <div id="ptabs" style="display:flex;gap:10px">
+        <button data-v="preview" aria-pressed="true">UI Preview</button>
+        <button data-v="tokens" aria-pressed="false">Tokens</button>
+      </div>
+      <button class="mini" id="inspect-btn" aria-pressed="false">INSPECT</button>
     </div>
 
     <div class="pane" id="pane-preview">
@@ -552,6 +586,7 @@
             <circle cx="81.2698" cy="14.431" r="4.55716" fill="#444445"/>
           </svg>
         </div>
+        <div class="pv-legend" id="pv-legend" hidden></div>
       </div>
     </div>
 
@@ -936,13 +971,23 @@ const ICONS = {
 const PV_TABS = [['home','홈'],['grid','카테고리'],['cal','예약'],['pin','스팟'],['user','마이']];
 const PV_STATS = [['ticket','쿠폰','999'],['coin','포인트','99,999'],['review','리뷰','999'],['book','저장됨','999']];
 
-/* the two pet cards carry their own accent, derived from the brand so the
-   biggest block on the screen re-themes with everything else */
-function petAccents(){
-  const h = rgbToHsl(hexToRGB(state.primary));
-  const alt = rgbToHex(hslToRgb((h.h + 150) % 360, h.s, h.l));
-  return [colorAt(state.primary, 45), colorAt(alt, 45)];
-}
+/* ---------- the role layer ------------------------------------------------
+   The product declares the roles it needs. Each taxonomy fills them from its
+   own vocabulary — the product never names a token. Toggling System therefore
+   repaints the screen with whatever that system actually affords, which is why
+   the two do not look identical.
+   -------------------------------------------------------------------------- */
+const PRODUCT_ROLES = [
+  ['appBg',         '앱 배경'],
+  ['raised',        '아바타 · 추가 버튼'],
+  ['textPrimary',   '제목 · 본문 · 홈 인디케이터'],
+  ['textSecondary', '보조 텍스트'],
+  ['textTertiary',  '셰브론 · 비활성 탭'],
+  ['divider',       '구분선 · 탭바 경계'],
+  ['accent',        '활성 탭'],
+  ['petA',          '펫 카드 1'],
+  ['petB',          '펫 카드 2'],
+];
 
 /* the on-colour comes from the accent's own ramp ends (grade 100 / 10), the way
    onPrimary does — never flat black or white, which reads as off-system */
@@ -951,9 +996,74 @@ function onAccent(accent){
   return contrast(hi, accent) >= contrast(lo, accent) ? hi : lo;
 }
 
-function petCard(accent, name, breed, rows){
+const SYSTEM_ADAPTERS = {
+  drft:{
+    label:'DRFT Engine',
+    resolve(){
+      const { cs, sf } = current;
+      /* DRFT has no named hue palette, so a second accent has to be *derived* */
+      const h = rgbToHsl(hexToRGB(state.primary));
+      const alt = rgbToHex(hslToRgb((h.h + 150) % 360, h.s, h.l));
+      const S = k => ({ hex:sf[k], token:k });
+      return {
+        appBg:         S('background'),
+        raised:        S('surfaceHigh'),
+        textPrimary:   S('text'),
+        textSecondary: S('text2'),
+        textTertiary:  S('onSurfaceVariant'),
+        divider:       S('outlineVariant'),
+        accent:        { hex:cs.primary, token:'primary' },
+        petA:          { hex:colorAt(state.primary, 45), token:'primary ramp @45', derived:true },
+        petB:          { hex:colorAt(alt, 45), token:'hue +150° @45', derived:true },
+      };
+    },
+  },
+  atomic:{
+    label:'Atomic System',
+    resolve(){
+      const pal = current.pal || atomicPalettes();
+      const th = state.theme;
+      const S = (g, k) => {
+        const r = resolveAtomic(A_SEMANTIC[g][k][th], pal);
+        return { hex:r.hex, token:g + '/' + k, source:r.ref };
+      };
+      const brand = brandTokens(th, pal);
+      const bBase = resolveAtomic(brand.backgroundBase, pal);
+      return {
+        appBg:         S('background', 'primary'),
+        raised:        S('background', 'tertiary'),
+        textPrimary:   S('foreground', 'primary'),
+        textSecondary: S('foreground', 'secondary'),
+        textTertiary:  S('foreground', 'tertiary'),
+        divider:       S('border', 'default'),
+        accent:        { hex:bBase.hex, token:'brand/backgroundBase', source:bBase.ref },
+        /* Atomic ships 11 named hues, so both accents are *picked*, not derived */
+        petA:          { hex:pal.primary[500], token:'primary/500' },
+        petB:          { hex:pal.saturated.teal[500], token:'saturated/teal/500' },
+      };
+    },
+  },
+};
+
+const activeAdapter = () => SYSTEM_ADAPTERS[state.view] || SYSTEM_ADAPTERS.drft;
+
+/* the role contract, as data — a product can consume this instead of tokens */
+function productContract(){
+  const R = activeAdapter().resolve();
+  return {
+    system: state.view,
+    roles: Object.fromEntries(PRODUCT_ROLES.map(([k, use]) => [k, {
+      use, value:R[k].hex, token:R[k].token,
+      ...(R[k].source ? { source:R[k].source } : {}),
+      ...(R[k].derived ? { derived:true } : {}),
+    }])),
+  };
+}
+const resolveRoles = () => activeAdapter().resolve();
+
+function petCard(role, accent, name, breed, rows){
   const on = onAccent(accent);
-  return '<div class="pv-pet" style="background:' + accent + ';color:' + on + '">' +
+  return '<div class="pv-pet" data-role="' + role + '" style="background:' + accent + ';color:' + on + '">' +
     '<div class="pv-pet-l"><div class="pv-photo" style="border-color:' + on + '33"></div>' +
       '<b>' + name + '</b><span>' + breed + '</span></div>' +
     '<div class="pv-pet-r">' + rows.map(([k, v], i) =>
@@ -962,50 +1072,92 @@ function petCard(accent, name, breed, rows){
 }
 
 function renderPreview(){
-  const sf = current.sf, cs = current.cs;
-  const [p1, p2] = petAccents();
+  const R = resolveRoles();
+  const dr = k => ' data-role="' + k + '"';
   $('pv-screen').innerHTML =
-    '<div class="pv" style="background:' + sf.background + ';color:' + sf.text + '">' +
+    '<div class="pv"' + dr('appBg') + ' style="background:' + R.appBg.hex + ';color:' + R.textPrimary.hex + '">' +
       '<div class="pv-status"><b>9:41</b><span>' +
         '<i class="pv-bars"></i><i class="pv-wifi"></i><i class="pv-bat"></i></span></div>' +
 
       '<div class="pv-nav"><h3>마이페이지</h3>' +
         '<div class="pv-navic">' + ICONS.bell + ICONS.bag + '</div></div>' +
 
-      '<div class="pv-row"><div class="pv-avatar" style="background:' + sf.surfaceHigh + '"></div>' +
-        '<div class="pv-id"><b>포들리</b><span style="color:' + sf.text2 + '">내 프로필 보기</span></div>' +
-        '<span style="color:' + sf.onSurfaceVariant + '">' + ICONS.chev + '</span></div>' +
+      '<div class="pv-row"><div class="pv-avatar"' + dr('raised') +
+          ' style="background:' + R.raised.hex + '"></div>' +
+        '<div class="pv-id"><b>포들리</b><span' + dr('textSecondary') +
+          ' style="color:' + R.textSecondary.hex + '">내 프로필 보기</span></div>' +
+        '<span' + dr('textTertiary') + ' style="color:' + R.textTertiary.hex + '">' + ICONS.chev + '</span></div>' +
 
       '<div class="pv-sec"><b>내 반려동물</b>' +
-        '<button class="pv-add" style="background:' + sf.surfaceHigh + ';color:' + sf.text + '">' +
+        '<button class="pv-add" style="background:' + R.raised.hex + ';color:' + R.textPrimary.hex + '">' +
           ICONS.plus + '</button></div>' +
 
       '<div class="pv-cards">' +
-        petCard(p1, '쿠니', '장모 닥스훈트',
+        petCard('petA', R.petA.hex, '쿠니', '장모 닥스훈트',
           [['나이','15년 11개월'],['몸무게','18kg'],['Pawdly 가입 기간','1년']]) +
-        petCard(p2, '보리', '포메라니안',
+        petCard('petB', R.petB.hex, '보리', '포메라니안',
           [['나이','3년 2개월'],['몸무게','4kg'],['Pawdly 가입 기간','8개월']]) +
       '</div>' +
 
       '<div class="pv-quick">' + PV_STATS.map(([i, k, v]) =>
-        '<div><span style="color:' + sf.text + '">' + ICONS[i] + '</span>' +
-        '<b>' + k + '</b><em style="color:' + sf.text2 + '">' + v + '</em></div>').join('') + '</div>' +
+        '<div><span style="color:' + R.textPrimary.hex + '">' + ICONS[i] + '</span>' +
+        '<b>' + k + '</b><em style="color:' + R.textSecondary.hex + '">' + v + '</em></div>').join('') + '</div>' +
 
-      '<div class="pv-div" style="background:' + sf.outlineVariant + '"></div>' +
+      '<div class="pv-div"' + dr('divider') + ' style="background:' + R.divider.hex + '"></div>' +
 
-      '<div class="pv-shop"><span style="color:' + sf.text2 + '">쇼핑</span>' +
-        '<div class="pv-link">주문 내역</div></div>' +
+      '<div class="pv-shop"><span style="color:' + R.textSecondary.hex + '">쇼핑</span>' +
+        '<div class="pv-link"' + dr('textPrimary') + '>주문 내역</div></div>' +
 
-      '<div class="pv-tabbar" style="border-top:1px solid ' + sf.outlineVariant + '">' +
+      '<div class="pv-tabbar" style="border-top:1px solid ' + R.divider.hex + '">' +
         PV_TABS.map(([i, k], n) => {
           const on = n === PV_TABS.length - 1;
-          return '<div style="color:' + (on ? cs.primary : sf.onSurfaceVariant) + '">' +
-            ICONS[i] + '<span>' + k + '</span></div>';
+          return '<div' + (on ? dr('accent') : '') + ' style="color:' +
+            (on ? R.accent.hex : R.textTertiary.hex) + '">' + ICONS[i] + '<span>' + k + '</span></div>';
         }).join('') +
       '</div>' +
-      '<div class="pv-home" style="background:' + sf.text + '"></div>' +
+      '<div class="pv-home" style="background:' + R.textPrimary.hex + '"></div>' +
     '</div>';
+
+  renderInspector(R);
 }
+
+/* ---------- inspector: what paints this, and what the other system calls it -- */
+function renderInspector(R){
+  const on = state.inspect;
+  $('pane-preview').classList.toggle('inspect', on);
+  $('pv-legend').hidden = !on;
+  $('inspect-btn').setAttribute('aria-pressed', String(on));
+  if(!on) return;
+
+  const other = state.view === 'atomic' ? 'drft' : 'atomic';
+  let O = {};
+  try{ O = SYSTEM_ADAPTERS[other].resolve(); }catch(e){ O = {}; }
+
+  $('pv-legend').innerHTML =
+    '<div class="lg-head"><b>' + activeAdapter().label + '</b>' +
+      '<span>다른 체계: ' + SYSTEM_ADAPTERS[other].label + '</span></div>' +
+    PRODUCT_ROLES.map(([k, use], i) => {
+      const cur = R[k] || {}, alt = O[k] || {};
+      return '<div class="lg-row" data-for="' + k + '">' +
+        '<i class="lg-n">' + (i + 1) + '</i>' +
+        '<i class="lg-sw" style="background:' + cur.hex + '"></i>' +
+        '<div class="lg-txt"><b>' + k + '</b><span>' + use + '</span>' +
+          '<code>' + (cur.token || '—') + (cur.derived ? ' · 파생' : '') + '</code>' +
+          (cur.source ? '<code class="lg-src">← ' + cur.source + '</code>' : '') +
+          '<code class="lg-alt">' + (alt.token || '—') + (alt.derived ? ' · 파생' : '') + '</code>' +
+        '</div>' +
+        '<code class="lg-hex">' + String(cur.hex || '').toUpperCase() + '</code></div>';
+    }).join('');
+
+  /* number the painted regions in the same order as the legend */
+  PRODUCT_ROLES.forEach(([k], i) => {
+    document.querySelectorAll('#pv-screen [data-role="' + k + '"]').forEach(el => {
+      el.style.setProperty('--rn', '"' + (i + 1) + '"');
+    });
+  });
+}
+
+/* inspector listeners live with the others, below — `$` is declared further down */
 
 /* ============================================================
    ATOMIC SYSTEM — the second taxonomy
@@ -1275,6 +1427,7 @@ const state = {
   atab:'css',
   linked:null,
   pane:'preview',
+  inspect:false,
   tint:{ strength:10, shape:'sheet' },
   custom:{ neutral:null, color:null },
   chan:'neutral',
@@ -1305,6 +1458,7 @@ function readHash(){
   state.view  = pick('v', ['drft','atomic']) || state.view;
   if(p.get('sp') === 'muted' || p.get('sp') === 'saturated') state.statusPalette = p.get('sp');
   if(p.get('pn') === 'preview' || p.get('pn') === 'tokens') state.pane = p.get('pn');
+  if(p.get('ins') === '1') state.inspect = true;
   const chRaw = p.get('ch');
   if(chRaw !== null && chRaw !== ''){
     const ch = Number(chRaw);
@@ -1330,7 +1484,8 @@ function writeHash(){
   const p = new URLSearchParams({ p:state.primary, m:state.mode, t:state.theme, k:state.curve,
     e:state.status.error, w:state.status.warning, s:state.status.success,
     ts:Math.round(state.tint.strength * 10), tp:state.tint.shape,
-    v:state.view, ch:state.chroma, sp:state.statusPalette, pn:state.pane });
+    v:state.view, ch:state.chroma, sp:state.statusPalette, pn:state.pane,
+    ins:state.inspect ? 1 : 0 });
   if(state.curve === 'custom' && state.custom.neutral){
     const enc = arr => arr.map(pt => Math.round(pt.x*10) + ':' + Math.round(pt.y*1000)).join(',');
     p.set('cn', enc(state.custom.neutral));
@@ -1394,7 +1549,9 @@ function render(){
     : generatePrimarySurfaceSystem(state.primary);
   const sf = surfaces[state.theme];
   const st = generateStatusColorSystem(state.status);
-  current = { cs, sf, st, surfaces };
+  /* the atomic palettes are needed by the preview too, not just the Tokens pane */
+  const pal = state.view === 'atomic' ? atomicPalettes() : null;
+  current = { cs, sf, st, surfaces, pal };
 
   /* the app skins itself with its own output */
   const r = document.documentElement.style;
@@ -1746,6 +1903,16 @@ $('chan').addEventListener('click', e => {
   const b = e.target.closest('button'); if(!b) return;
   state.chan = b.dataset.v; picked = -1; render();
 });
+$('pv-legend').addEventListener('mouseover', e => {
+  const row = e.target.closest('.lg-row'); if(!row) return;
+  document.querySelectorAll('#pv-screen .role-hot').forEach(el => el.classList.remove('role-hot'));
+  document.querySelectorAll('#pv-screen [data-role="' + row.dataset.for + '"]')
+    .forEach(el => el.classList.add('role-hot'));
+});
+$('pv-legend').addEventListener('mouseleave', () => {
+  document.querySelectorAll('#pv-screen .role-hot').forEach(el => el.classList.remove('role-hot'));
+});
+$('inspect-btn').addEventListener('click', () => { state.inspect = !state.inspect; render(); });
 $('ptabs').addEventListener('click', e => {
   const b = e.target.closest('button'); if(!b) return;
   state.pane = b.dataset.v; render();
@@ -2094,7 +2261,7 @@ function renderAtomicContrast(pal){
 let currentAtomic = null, currentBindings = null;
 
 function renderAtomic(){
-  const pal = atomicPalettes();
+  const pal = current.pal || atomicPalettes();
   const idx = atomicBindings(pal);
   currentAtomic = pal;
   currentBindings = idx;
@@ -2234,6 +2401,7 @@ function exportAtomic(kind){
              steps:ATOMIC_STEPS, opacity:OPACITY_STEPS },
       ...t,
       bindings:(currentBindings || atomicBindings(currentAtomic || atomicPalettes())).byToken,
+      product: productContract(),
     }, null, 2);
   }
   if(kind === 'figma'){
@@ -2286,6 +2454,11 @@ function exportAtomic(kind){
   lines.push('@media (prefers-color-scheme: dark) {\n  :root:not([data-theme="light"]) {\n' + dark + '\n  }\n}');
   lines.push('');
   lines.push(':root[data-theme="dark"] {\n' + dark.replace(/^ {4}/gm, '  ') + '\n}');
+  lines.push('');
+  lines.push('/* layer 2 — product roles */');
+  lines.push(':root {');
+  PRODUCT_ROLES.forEach(([k]) => lines.push('  --role-' + kebab(k) + ': ' + productContract().roles[k].value + ';'));
+  lines.push('}');
   return lines.join('\n') + '\n';
 }
 
@@ -2321,6 +2494,9 @@ function exportAs(kind){
       '/* layer 0 — color source */\n:root {\n' + srcBlock + '\n}\n\n' +
       '/* layer 1 — semantic */\n:root {\n' +
       block(cs) + '\n\n' + block(surfaces.light) + '\n\n' + block(st) + '\n}\n\n' +
+      '/* layer 2 — product roles */\n:root {\n' +
+      PRODUCT_ROLES.map(([k]) => '  --role-' + kebab(k) + ': ' + productContract().roles[k].value + ';').join('\n') +
+      '\n}\n\n' +
       '@media (prefers-color-scheme: dark) {\n  :root {\n' +
       Object.entries(surfaces.dark).map(([k,v]) => '    --'+kebab(k)+': '+v+';').join('\n') +
       '\n  }\n}\n';
@@ -2339,6 +2515,7 @@ function exportAs(kind){
              mode:state.mode, base:state.primary, grades:GRADES },
       source: src,
       semantic:{ primary: cs, surface: surfaces, status: st },
+      product: productContract(),
     }, null, 2);
   }
   if(kind === 'figma'){
