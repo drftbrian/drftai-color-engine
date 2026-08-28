@@ -196,6 +196,30 @@
   .ad-meta{opacity:.7}
   .ad-band{margin-left:auto}
   .ad-note{font-family:var(--mono);font-size:10px;color:var(--text2);opacity:.8}
+  .dropzone{display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;
+    text-align:center;padding:14px 10px;border:1px dashed var(--outline);border-radius:8px;
+    cursor:pointer;transition:.15s;background:var(--s-lowest)}
+  .dropzone:hover,.dropzone.over{border-color:var(--primary);background:var(--s-low)}
+  .dropzone b{font-family:var(--mono);font-size:11px;color:var(--text);font-weight:500}
+  .dropzone span{font-family:var(--mono);font-size:9.5px;color:var(--text2)}
+
+  #shot-stage{align-items:flex-start;justify-content:center;overflow:auto}
+  #shot-img{max-width:100%;border-radius:8px;border:1px solid var(--outline-variant);display:block}
+
+  .ad-shot{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  .ad-shot img{max-width:min(100%,420px);border-radius:8px;border:1px solid var(--outline-variant);display:block}
+  .ad-shot-meta{display:flex;flex-direction:column;gap:8px;min-width:150px}
+  .ad-shot-meta div{border:1px solid var(--outline-variant);border-radius:8px;padding:10px 12px;
+    display:flex;flex-direction:column;gap:2px}
+  .ad-shot-meta b{font-family:var(--mono);font-size:19px;color:var(--text);line-height:1}
+  .ad-shot-meta span{font-family:var(--mono);font-size:9.5px;color:var(--text2)}
+
+  .ad-ways{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+  .ad-ways div{border:1px solid var(--outline-variant);border-radius:8px;padding:14px;
+    display:flex;flex-direction:column;gap:6px}
+  .ad-ways b{font-family:var(--mono);font-size:12px;color:var(--primary)}
+  .ad-ways span{font-size:12px;line-height:1.6;color:var(--text2);font-family:var(--kr)}
+  .ad-ways span b{font-family:var(--kr);font-size:12px;color:var(--text)}
   .ad-d{border:1px solid currentColor;border-radius:3px;padding:1px 5px}
   .ad-d.ok{color:#1a7f4b}.ad-d.bad{color:#b3261e}
   .ad-acts{display:flex;gap:5px}
@@ -588,11 +612,17 @@
       <div class="sec-head"><h2>Import</h2></div>
       <div class="sec-body">
         <p class="sec-note">CSS 변수 · 토큰 JSON · Tailwind config · hex 목록 아무거나 붙여넣으세요.</p>
-        <textarea id="imp-text" spellcheck="false" rows="5"
+        <textarea id="imp-text" spellcheck="false" rows="4"
           placeholder="--surface: #1E2024;&#10;{&quot;Dark/Background/Background&quot;:&quot;#0E1011&quot;}&#10;#005EB5"></textarea>
+        <label class="dropzone" id="imp-drop">
+          <input type="file" id="imp-file" accept="image/*" hidden>
+          <b>스크린샷 끌어놓기 · 붙여넣기(⌘V) · 클릭해서 고르기</b>
+          <span>PNG · JPG · 어떤 UI 화면이든</span>
+        </label>
         <div class="curve-actions">
           <button class="ghost" id="imp-run">ANALYZE</button>
           <button class="ghost" id="imp-sample">SAMPLE</button>
+          <button class="ghost" id="imp-clear" hidden>CLEAR</button>
         </div>
         <p class="sec-note" id="imp-summary"></p>
       </div>
@@ -630,7 +660,10 @@
     </div>
 
     <div class="pane" id="pane-preview">
-      <div class="stage">
+      <div class="stage" id="shot-stage" hidden>
+        <img id="shot-img" alt="가져온 화면">
+      </div>
+      <div class="stage" id="phone-stage">
         <div class="phone">
           <div class="screen" id="pv-screen"></div>
           <svg class="bezel" viewBox="0 0 362.294 738.26" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" aria-hidden="true">
@@ -1700,15 +1733,21 @@ function render(){
     status.appendChild(swatchEl(k, st[k], '', family + '/' + grade));
   });
 
+  $('shot-stage').hidden = !shot;
+  $('phone-stage').hidden = !!shot;
+  $('imp-clear').hidden = !shot && !audit;
   $('pane-preview').hidden = state.pane !== 'preview';
   $('pane-tokens').hidden  = state.pane !== 'tokens';
   $('pane-audit').hidden   = state.pane !== 'audit';
   document.querySelectorAll('#ptabs button').forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.v === state.pane)));
   if(state.pane === 'audit') renderAudit();
-  $('imp-summary').textContent = audit && audit.entries
-    ? audit.entries.length + '색 · 시스템 ' + (audit.system || []).length +
-      ' · 시스템 밖 ' + (audit.drift || []).length : '';
+  $('imp-summary').textContent = audit && audit.linkOnly
+    ? 'Figma 링크는 열 수 없습니다 — 우측 안내 참고'
+    : (audit && audit.entries && audit.entries.length
+        ? (audit.from === 'image' ? '이미지에서 ' : '') + audit.entries.length + '색 · 시스템 ' +
+          (audit.system || []).length + ' · 시스템 밖 ' + (audit.drift || []).length
+        : '');
 
   const inAtomic = state.view === 'atomic';
   $('view-drft').hidden = inAtomic;
@@ -1741,6 +1780,7 @@ function render(){
   renderCurveSide();
   renderPreview();
   writeHash();
+  /* `shot` is a data URL held in memory only — it would blow the quota */
   try{ localStorage.setItem('chroma-bench', JSON.stringify(state)); }catch(e){}
 }
 
@@ -2680,6 +2720,67 @@ function solveSystem(neutrals, primaryHex){
 /* ---------- 4. run + report ------------------------------------------------- */
 let audit = null;
 
+/* ---------- 4b. pixels ------------------------------------------------------
+   A UI screenshot has thousands of colours, nearly all of them antialiasing,
+   gradients and photo noise. One cheap test separates design from artefact:
+   a pixel belongs to a flat region only if its four neighbours are identical.
+   Text edges, gradients and photos almost never pass that; large UI fills
+   always do.
+   -------------------------------------------------------------------------- */
+const SHOT_MAX = 1100;   /* long edge, for speed */
+
+function extractFromImage(img){
+  const scale = Math.min(1, SHOT_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.max(1, Math.round(img.naturalWidth * scale));
+  const h = Math.max(1, Math.round(img.naturalHeight * scale));
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d', { willReadFrequently:true });
+  ctx.drawImage(img, 0, 0, w, h);
+  const d = ctx.getImageData(0, 0, w, h).data;
+
+  const key = i => (d[i] << 16) | (d[i+1] << 8) | d[i+2];
+  const flat = new Map();
+  let kept = 0;
+  for(let y = 1; y < h - 1; y++){
+    for(let x = 1; x < w - 1; x++){
+      const i = (y * w + x) * 4;
+      if(d[i+3] < 250) continue;
+      const k = key(i), L = key(i - 4), R = key(i + 4), U = key(i - w*4), D = key(i + w*4);
+
+      /* a flat fill: all four neighbours identical */
+      let ok = (k === L && k === R && k === U && k === D);
+
+      /* a hairline: identical along one axis, and the two pixels across it are
+         the same as each other but different from us. That is a 1px rule on a
+         uniform ground — dividers and borders, which the flat test alone drops.
+         A gradient fails it (the pixels across differ), so does antialiasing. */
+      if(!ok) ok = (k === L && k === R && U === D && U !== k) ||
+                   (k === U && k === D && L === R && L !== k);
+
+      if(!ok) continue;
+      flat.set(k, (flat.get(k) || 0) + 1);
+      kept++;
+    }
+  }
+
+  const total = Math.max(1, kept);
+  const raw = [...flat.entries()]
+    .map(([k, n]) => ({ hex:rgbToHex({ r:(k >> 16) & 255, g:(k >> 8) & 255, b:k & 255 }), count:n }))
+    .filter(c => c.count / total >= 0.00008)     /* 0.008% — hairlines are thin */
+    .sort((a, b) => b.count - a.count);
+
+  /* merge near-duplicates — JPEG and scaling nudge a flat fill by a level or two */
+  const merged = [];
+  raw.forEach(c => {
+    const hit = merged.find(m => chMax(m.hex, c.hex) <= 2);
+    if(hit) hit.count += c.count; else merged.push({ ...c });
+  });
+
+  return { entries:merged.slice(0, 48), w, h,
+           pixels:w * h, flatPixels:kept, rawColors:flat.size };
+}
+
 function runAudit(text){
   const entries = parsePalette(text);
   if(!entries.length){ audit = { empty:true, entries:[] }; return audit; }
@@ -2721,12 +2822,54 @@ function runAudit(text){
   return audit;
 }
 
+/* the text path and the pixel path meet here */
+function runAuditOn(entries, meta){
+  if(!entries.length){ audit = { empty:true, entries:[], ...meta }; return audit; }
+  const cls = classifyPalette(entries);
+  let fit = cls.brand ? solveSystem(cls.system, cls.brand.hex) : null;
+  let system = cls.system, drift = cls.drift;
+  if(fit){
+    const de = desatOf(cls.brand.hex);
+    const graded = cls.neutralish.map(x => ({
+      ...x, best:bestGrade(x.hex, fit.curve, fit.shape, fit.strength, de, 0.5, 0.02) }));
+    system = graded.filter(x => x.best.d <= 2).map(x => ({ ...x, tinted:x.spread > 2 }));
+    drift = graded.filter(x => x.best.d > 2).map(x => {
+      let near = null;
+      system.forEach(sv => { const d = chMax(x.hex, sv.hex); if(!near || d < near.d) near = { d, of:sv }; });
+      return { ...x, near, band:bandFor(near ? near.d : Infinity), residual:x.best.d };
+    });
+    if(system.length && system.length !== cls.system.length){
+      const better = solveSystem(system, cls.brand.hex);
+      if(better && better.worst <= fit.worst) fit = better;
+    }
+    fit.shapeCertain = system.some(x => x.best && x.best.g > 90);
+  }
+  audit = { entries, ...cls, system, drift, fit, ...meta };
+  return audit;
+}
+
+const FIGMA_LINK = /figma\.com\/(design|file|board)\//i;
+
 /* ---------- 5. the report --------------------------------------------------- */
 const swatchDot = hex => '<i class="ad-sw" style="background:' + hex + '"></i>';
 
 function renderAudit(){
   const el = $('audit-body');
   if(!audit){ el.innerHTML = '<p class="sec-note">왼쪽 Import에 팔레트를 붙여넣고 ANALYZE를 누르세요.</p>'; return; }
+  if(audit.linkOnly){
+    el.innerHTML =
+      '<section class="step"><div class="step-head"><span class="grade">LINK</span>' +
+      '<h2>Figma 링크는 앱이 열 수 없습니다</h2></div>' +
+      '<p class="sec-note">브라우저에서 실행되는 단일 페이지라 Figma에 접속할 권한도 경로도 없습니다. ' +
+      '대신 둘 중 하나로 같은 결과를 얻습니다.</p>' +
+      '<div class="ad-ways">' +
+        '<div><b>1 · 스크린샷</b><span>Figma에서 프레임을 PNG로 export 하거나 화면을 캡처해 ' +
+          '왼쪽 상자에 끌어놓으세요. 픽셀에서 팔레트를 뽑습니다. 어떤 화면이든 됩니다.</span></div>' +
+        '<div><b>2 · 변수 붙여넣기</b><span>Figma dev mode에서 변수 값을 복사하거나 ' +
+          'CSS·토큰 JSON을 붙여넣으세요. <b>이름까지</b> 보존돼 되돌려보낼 때 제자리에 들어갑니다.</span></div>' +
+      '</div></section>';
+    return;
+  }
   if(audit.empty){ el.innerHTML = '<p class="sec-note">색을 하나도 찾지 못했습니다.</p>'; return; }
 
   const { entries, brand, system, drift, hues, fit } = audit;
@@ -2777,7 +2920,18 @@ function renderAudit(){
         '</div>').join('') + '</div>'
     : '<p class="sec-note">시스템 밖 색이 없습니다.</p>';
 
-  el.innerHTML =
+  const shotCard = audit.from === 'image' && shot
+    ? '<section class="step"><div class="step-head"><span class="grade">SOURCE</span>' +
+        '<h2>가져온 화면</h2><p>' + shot.w + '×' + shot.h + '</p></div>' +
+        '<div class="ad-shot"><img src="' + shot.url + '" alt="">' +
+        '<div class="ad-shot-meta">' +
+          '<div><b>' + audit.shot.rawColors.toLocaleString() + '</b><span>평면 픽셀의 원색</span></div>' +
+          '<div><b>' + audit.shot.entries.length + '</b><span>추출된 색</span></div>' +
+          '<div><b>' + Math.round(audit.shot.flatPixels / audit.shot.pixels * 100) + '%</b><span>평면 영역 비율</span></div>' +
+        '</div></div></section>'
+    : '';
+
+  el.innerHTML = shotCard +
     '<section class="step"><div class="step-head"><span class="grade">FUNNEL</span>' +
       '<h2>색 인구조사</h2><p>' + (brand ? '브랜드 후보 ' + brand.hex.toUpperCase() : '브랜드 미검출') + '</p></div>' +
       funnel + '</section>' +
@@ -2802,9 +2956,61 @@ const SAMPLE_PALETTE = `/* 990 Product Builder — Figma variables */
 /* 시스템 밖으로 발견된 것들 */
 #265DAF #CECECE #242424 #A4A4A4 #276EF1 #5BCA3D`;
 
+let shot = null;   /* {url, w, h, stats} — kept in memory only, never persisted */
+
+function ingestImage(file){
+  if(!file || !/^image\//.test(file.type)){ $('imp-summary').textContent = '이미지 파일이 아닙니다.'; return; }
+  const fr = new FileReader();
+  fr.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const res = extractFromImage(img);
+      shot = { url:fr.result, w:img.naturalWidth, h:img.naturalHeight, stats:res };
+      $('shot-img').src = shot.url;
+      runAuditOn(res.entries, { from:'image', shot:res });
+      state.pane = 'audit';
+      render();
+    };
+    img.onerror = () => { $('imp-summary').textContent = '이미지를 읽지 못했습니다.'; };
+    img.src = fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+
+$('imp-file').addEventListener('change', e => ingestImage(e.target.files[0]));
+['dragenter','dragover'].forEach(t => $('imp-drop').addEventListener(t, e => {
+  e.preventDefault(); $('imp-drop').classList.add('over');
+}));
+['dragleave','drop'].forEach(t => $('imp-drop').addEventListener(t, e => {
+  e.preventDefault(); $('imp-drop').classList.remove('over');
+}));
+$('imp-drop').addEventListener('drop', e => {
+  const f = e.dataTransfer && e.dataTransfer.files[0];
+  if(f) ingestImage(f);
+});
+/* paste an image anywhere in the app */
+document.addEventListener('paste', e => {
+  const items = e.clipboardData && e.clipboardData.items;
+  if(!items) return;
+  for(const it of items){
+    if(it.type && it.type.startsWith('image/')){ e.preventDefault(); ingestImage(it.getAsFile()); return; }
+  }
+});
+$('imp-clear').addEventListener('click', () => {
+  shot = null; audit = null; $('imp-text').value = '';
+  state.pane = 'preview'; render();
+});
+
 $('imp-run').addEventListener('click', () => {
   const t = $('imp-text').value.trim();
   if(!t){ $('imp-summary').textContent = '붙여넣은 내용이 없습니다.'; return; }
+  /* a Figma URL carries no colours — say what to do instead of reporting 0 */
+  if(FIGMA_LINK.test(t) && !/#[0-9a-fA-F]{3,8}\b/.test(t)){
+    audit = { linkOnly:true, entries:[] };
+    state.pane = 'audit';
+    render();
+    return;
+  }
   runAudit(t);
   state.pane = 'audit';
   render();
