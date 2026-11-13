@@ -3,6 +3,8 @@
 생성 규칙 하나에서 두 개의 토큰 체계와 제품 색이 전부 파생되는 구조의 전체 명세.
 모든 수치는 `index.html`의 실제 상수에서 추출했습니다.
 
+Atomic System만 따로, 쓰는 법까지 보려면 → [ATOMIC_SYSTEM.md](ATOMIC_SYSTEM.md)
+
 ---
 
 ## 0. 한 장 요약
